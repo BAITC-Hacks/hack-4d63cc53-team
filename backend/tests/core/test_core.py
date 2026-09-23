@@ -134,9 +134,58 @@ class TaskApiTests(CoreTestCase):
         self.assertEqual(edited["revision"], 4)
         self.assertEqual(edited["publicationStatus"], "published")
         self.assertEqual(edited["publishedVersion"], snapshot)
-        _, _, republished = self.request("POST", f"/api/tasks/{task_id}/publish", {"expectedRevision": 4})
-        self.assertEqual(republished["publishedVersion"]["version"], 5)
-        self.assertEqual(republished["publishedVersion"]["fields"]["context"], "")
+        status, _, error = self.request("POST", f"/api/tasks/{task_id}/publish", {"expectedRevision": 4})
+        self.assertEqual(status, 400)
+        self.assertEqual(error["detail"], "Подтвердите хотя бы одно заполненное поле перед публикацией.")
+        unchanged = self.request("GET", f"/api/tasks/{task_id}")[2]
+        self.assertEqual(unchanged["revision"], 4)
+        self.assertEqual(unchanged["updatedAt"], edited["updatedAt"])
+        self.assertEqual(unchanged["publishedVersion"], snapshot)
+
+        self.request("PATCH", f"/api/tasks/{task_id}", {"expectedRevision": 4, "fields": {"context": "new confirmed context"}})
+        self.request("POST", f"/api/tasks/{task_id}/confirm", {"expectedRevision": 5, "fields": ["context"]})
+        _, _, republished = self.request("POST", f"/api/tasks/{task_id}/publish", {"expectedRevision": 6})
+        self.assertEqual(republished["publishedVersion"]["version"], 7)
+        self.assertEqual(republished["publishedVersion"]["fields"]["context"], "new confirmed context")
+
+    def test_publish_rejects_unconfirmed_or_whitespace_snapshot_atomically(self):
+        _, _, task = self.request("POST", "/api/tasks", {"rawDescription": "Draft", "fields": {"title": "Unconfirmed title"}})
+        task_id = task["id"]
+        status, _, error = self.request("POST", f"/api/tasks/{task_id}/publish", {"expectedRevision": 1})
+        self.assertEqual(status, 400)
+        self.assertIn("Подтвердите", error["detail"])
+        _, _, task = self.request("PATCH", f"/api/tasks/{task_id}", {"expectedRevision": 1, "fields": {"title": " \t "}})
+        _, _, task = self.request("POST", f"/api/tasks/{task_id}/confirm", {"expectedRevision": 2, "fields": ["title"]})
+        before = self.request("GET", f"/api/tasks/{task_id}")[2]
+        status, _, error = self.request("POST", f"/api/tasks/{task_id}/publish", {"expectedRevision": 3})
+        self.assertEqual(status, 400)
+        after = self.request("GET", f"/api/tasks/{task_id}")[2]
+        self.assertEqual(after["revision"], before["revision"])
+        self.assertEqual(after["updatedAt"], before["updatedAt"])
+        self.assertEqual(after["publicationStatus"], "draft")
+        self.assertIsNone(after["publishedVersion"])
+
+    def test_publish_error_precedence_for_stale_and_missing_tasks(self):
+        _, _, task = self.request("POST", "/api/tasks", {"rawDescription": "Draft"})
+        path = f"/api/tasks/{task['id']}/publish"
+        self.request("PATCH", f"/api/tasks/{task['id']}", {"expectedRevision": 1, "fields": {"title": "Changed"}})
+        status, _, conflict = self.request("POST", path, {"expectedRevision": 1})
+        self.assertEqual(status, 409)
+        self.assertEqual(conflict["detail"]["task"]["revision"], 2)
+        self.assertEqual(self.request("POST", "/api/tasks/missing/publish", {"expectedRevision": 1})[0], 404)
+
+    def test_confirmed_title_alone_can_publish_and_appears_in_catalog(self):
+        _, _, task = self.request("POST", "/api/tasks", {"rawDescription": "Draft", "fields": {"title": "Zero score task"}})
+        task_id = task["id"]
+        _, _, task = self.request("POST", f"/api/tasks/{task_id}/confirm", {"expectedRevision": 1, "fields": ["title"]})
+        status, _, published = self.request("POST", f"/api/tasks/{task_id}/publish", {"expectedRevision": 2})
+        self.assertEqual(status, 200)
+        self.assertEqual(published["publishedVersion"]["score"], 0)
+        catalog_status, _, catalog = self.request("GET", "/api/catalog")
+        self.assertEqual(catalog_status, 200)
+        entry = next(item for item in catalog if item["taskId"] == task_id)
+        self.assertEqual(entry["fields"]["title"], "Zero score task")
+        self.assertEqual(entry["score"], 0)
 
     def test_stale_mutation_is_atomic_and_unknown_task_is_404(self):
         _, _, task = self.request("POST", "/api/tasks", {"rawDescription": "Before"})
@@ -255,6 +304,29 @@ class AnalyzeTests(CoreTestCase):
                 result = ai.analyze("", answers)
                 self.assertGreaterEqual(len(result["questions"]), 3)
                 self.assertEqual(len({q.strip() for q in result["questions"]}), len(result["questions"]))
+
+    def test_fallback_asks_three_distinct_relevant_questions_for_each_single_missing_field(self):
+        completed = {name: f"answer for {name}" for name in EDITABLE_FIELDS}
+        for missing_field in EDITABLE_FIELDS:
+            answers = dict(completed)
+            del answers[missing_field]
+            with self.subTest(missing_field=missing_field), patch.object(ai, "OPENAI_API_KEY", None):
+                result = ai.analyze("", answers)
+            questions = result["questions"]
+            self.assertEqual(len(questions), 3)
+            self.assertEqual(len({question.strip() for question in questions}), 3)
+            self.assertTrue(all(len(question.strip()) > 12 for question in questions))
+            self.assertEqual(result["missingFields"], [missing_field])
+            self.assertEqual(result["fields"][missing_field], "")
+            for name, answer in answers.items():
+                self.assertEqual(result["fields"][name], answer)
+
+    def test_explicit_fallback_mode_never_uses_transport_even_with_key(self):
+        with patch.object(ai, "AI_MODE", "fallback"), patch.object(ai, "OPENAI_API_KEY", "dummy-test-key"), patch.object(ai, "_post", side_effect=AssertionError("network must not be called")):
+            result = ai.analyze("Description", {"need": "Existing answer"})
+        self.assertEqual(result["mode"], "fallback")
+        self.assertEqual(result["fields"]["need"], "Existing answer")
+        self.assertEqual(result["fields"]["context"], "Description")
 
     def test_invalid_completed_outputs_all_use_safe_fallback(self):
         base = json.loads(self.valid_ai_response()["output"][0]["content"][0]["text"])

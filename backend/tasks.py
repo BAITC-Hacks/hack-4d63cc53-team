@@ -4,6 +4,11 @@ from copy import deepcopy
 
 from .scoring import calculate_score
 
+
+class EmptyPublicationError(Exception):
+    message = "Подтвердите хотя бы одно заполненное поле перед публикацией."
+
+
 class TaskService:
     def __init__(self, repository):
         self.repository = repository
@@ -51,6 +56,8 @@ class TaskService:
                 name: task["fields"][name] if name in task["confirmedFields"] else ""
                 for name in task["fields"]
             }
+            if not any(value.strip() for value in snapshot_fields.values()):
+                raise EmptyPublicationError()
             task["publication"] = {
                 "taskId": task["id"],
                 "version": task["revision"] + 1,

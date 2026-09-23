@@ -12,7 +12,7 @@ from .db import TaskRepository
 from .marketplace.repository import MarketplaceRepository
 from .marketplace.router import router as marketplace_router
 from .schemas import AnalyzeRequest, ConfirmTaskRequest, CreateTaskRequest, PatchTaskRequest, PublishTaskRequest
-from .tasks import TaskService
+from .tasks import EmptyPublicationError, TaskService
 
 def create_app(database_path: Path | None = None, service: TaskService | None = None) -> FastAPI:
     task_service = service or TaskService(TaskRepository(database_path or DATABASE_PATH))
@@ -54,7 +54,10 @@ def create_app(database_path: Path | None = None, service: TaskService | None = 
 
     @application.post("/api/tasks/{task_id}/publish")
     def publish_task(task_id: str, body: PublishTaskRequest):
-        return mutation(*task_service.publish(task_id, body.expectedRevision))
+        try:
+            return mutation(*task_service.publish(task_id, body.expectedRevision))
+        except EmptyPublicationError as exc:
+            raise HTTPException(400, exc.message) from exc
 
     @application.post("/api/analyze")
     def analyze_task(body: AnalyzeRequest):

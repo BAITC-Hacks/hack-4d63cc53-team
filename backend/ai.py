@@ -6,16 +6,24 @@ from urllib.request import Request, urlopen
 from .config import AI_MODE, OPENAI_API_KEY, OPENAI_MODEL
 from .schemas import EDITABLE_FIELDS, blank_fields, validate_field_values
 
-FIELD_LABELS = {
-    "topic": "тему задачи", "title": "название", "context": "контекст", "need": "потребность",
-    "users": "пользователей", "data": "доступные данные", "constraints": "ограничения",
-    "expectedResult": "ожидаемый результат", "successCriteria": "критерии успеха", "contact": "контакт",
-    "interactionFormat": "формат взаимодействия", "feedbackProcess": "процесс обратной связи",
+FIELD_QUESTIONS = {
+    "topic": "К какой теме относится эта задача?",
+    "title": "Какое краткое название лучше всего описывает задачу?",
+    "context": "Как сейчас устроен процесс или ситуация, в которой возникла задача?",
+    "need": "Какую проблему нужно решить и что должно измениться после её решения?",
+    "users": "Какие пользователи сталкиваются с этой задачей?",
+    "data": "Какие данные или материалы доступны, в каком они виде и как получить к ним доступ?",
+    "constraints": "Какие есть ограничения по сроку, бюджету или технологиям?",
+    "expectedResult": "Какой ожидаемый результат должна подготовить команда?",
+    "successCriteria": "По каким метрикам и целевым значениям оценят работу?",
+    "contact": "Кто будет контактным лицом со стороны бизнеса?",
+    "interactionFormat": "В каком формате будет проходить взаимодействие с командой?",
+    "feedbackProcess": "Как будет организована обратная связь с командой во время работы?",
 }
 EXTRA_QUESTIONS = (
-    "Как будет организована обратная связь с командой во время работы?",
-    "Кто сможет подтвердить результат после выполнения задачи?",
-    "Какие изменения в результате будут наиболее полезны пользователям?",
+    FIELD_QUESTIONS["feedbackProcess"],
+    FIELD_QUESTIONS["successCriteria"],
+    FIELD_QUESTIONS["data"],
 )
 
 def analyze(description: str, answers: dict[str, str], transport=None) -> dict:
@@ -114,10 +122,14 @@ def fallback(description: str, answers: dict[str, str], reason: str) -> dict:
     if not fields["context"].strip() and description.strip():
         fields["context"] = description.strip()[:4000]
     missing = [name for name in EDITABLE_FIELDS if not fields[name].strip()]
-    preferred = ("need", "users", "data", "expectedResult", "successCriteria", "constraints", "contact")
-    questions = [f"Уточните {FIELD_LABELS[name]}." for name in preferred if name in missing]
+    question_order = (
+        "need", "users", "data", "expectedResult", "successCriteria", "constraints", "contact",
+        "interactionFormat", "feedbackProcess", "context", "title", "topic",
+    )
+    questions = [FIELD_QUESTIONS[name] for name in question_order if name in missing]
     for question in EXTRA_QUESTIONS:
         if len(questions) >= 3:
             break
-        questions.append(question)
+        if question not in questions:
+            questions.append(question)
     return {"fields": fields, "questions": questions[:3], "missingFields": missing, "mode": "fallback", "reason": reason}
