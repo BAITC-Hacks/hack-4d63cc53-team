@@ -14,32 +14,37 @@
           <span class="brand-mark">и</span><span>импульс<span class="brand-dot">.</span></span>
         </a>
         <div class="workspace-label">РАБОЧЕЕ ПРОСТРАНСТВО</div>
-        <div class="workspace"><span class="workspace-icon">К</span><span><strong>Кофейня «Север»</strong><small>Кабинет бизнеса</small></span><span class="chevron">⌄</span></div>
+        <div class="workspace"><span class="workspace-icon">К</span><span><strong id="workspace-name">Кофейня «Север»</strong><small id="workspace-subtitle">Кабинет бизнеса</small></span><span class="chevron">⌄</span></div>
+        <div class="workspace-label role-label">РЕЖИМ РАБОТЫ</div>
+        <div class="role-switch" role="group" aria-label="Выберите режим работы">
+          <button class="role-button active" type="button" data-role="business">Бизнес</button>
+          <button class="role-button" type="button" data-role="team">Команда</button>
+        </div>
         <nav class="side-nav" aria-label="Основная навигация">
-          <a class="nav-item active" href="#workspace"><span class="nav-icon">▤</span>Мои задачи</a>
-          <a class="nav-item" href="#workspace" data-notice="Каталог студенческих проектов скоро появится здесь."><span class="nav-icon">◫</span>Каталог проектов</a>
-          <a class="nav-item" href="#workspace" data-notice="Раздел команд будет доступен после запуска marketplace."><span class="nav-icon">♧</span>Команды</a>
+          <a class="nav-item active" href="#workspace" data-view="business" data-nav-role="business"><span class="nav-icon">▤</span>Мои задачи</a>
+          <a class="nav-item" href="#marketplace" data-view="catalog" data-nav-role="team"><span class="nav-icon">◫</span>Каталог проектов</a>
+          <a class="nav-item" href="#marketplace" data-view="teams" data-nav-role="team"><span class="nav-icon">♧</span>Команды</a>
         </nav>
         <div class="sidebar-bottom"><div class="help-icon">?</div><div><strong>Нужна помощь?</strong><small>Мы на связи</small></div><span class="chevron">↗</span></div>
-        <div class="profile"><div class="avatar">АС</div><div><strong>Алия Садыкова</strong><small>Представитель бизнеса</small></div><span class="chevron">···</span></div>
+        <div class="profile"><div class="avatar">АС</div><div><strong>Алия Садыкова</strong><small id="profile-role">Представитель бизнеса</small></div><span class="chevron">···</span></div>
       </aside>
 
       <main id="top" class="main-area">
         <header class="topbar"><div class="breadcrumbs">Рабочее пространство <span>/</span> <strong>Мои задачи</strong></div><div class="top-actions"><span id="server-connection" class="connection checking" aria-live="polite"><i></i>Проверяем сервер…</span><button class="icon-button" aria-label="Уведомления">♧<b></b></button><div class="avatar small">АС</div></div></header>
         <div id="workspace" class="content">
-          <section class="page-heading">
+          <section class="page-heading business-view-block">
             <div><div class="eyebrow">ВАШИ ИДЕИ — НАЧАЛО БОЛЬШИХ ПРОЕКТОВ</div><h1>Мои задачи</h1><p>Опишите задачу простыми словами. Мы поможем превратить её в понятный проект для студенческих команд.</p></div>
             <button id="new-task" class="button button-primary"><span>＋</span> Создать задачу</button>
           </section>
 
-          <section class="overview-grid" aria-label="Обзор задач">
+          <section class="overview-grid business-view-block" aria-label="Обзор задач">
             <article class="metric-card"><div class="metric-label">Всего задач <span>↗</span></div><strong id="stat-total">—</strong><small>в вашем рабочем пространстве</small></article>
             <article class="metric-card"><div class="metric-label">Опубликовано <span class="metric-green">●</span></div><strong id="stat-published">—</strong><small>доступны студенческим командам</small></article>
             <article class="metric-card"><div class="metric-label">Средний рейтинг <span class="metric-purple">✳</span></div><strong id="stat-score">—</strong><small>готовность описаний к работе</small></article>
             <article class="tip-card"><div class="tip-icon">✳</div><div><strong>Хорошее описание — сильный старт</strong><p>Чем яснее задача, тем точнее команды смогут предложить решение.</p></div></article>
           </section>
 
-          <section id="editor" class="editor-card" hidden>
+          <section id="editor" class="editor-card business-view-block" hidden>
             <div class="editor-header"><div><div class="eyebrow">МАСТЕР СОЗДАНИЯ</div><h2 id="editor-title">Новая задача</h2><p>Сохранение происходит на сервере. Черновик можно продолжить позже.</p></div><button id="close-editor" class="icon-button close-button" aria-label="Закрыть редактор">×</button></div>
             <div class="steps" aria-label="Этапы создания"><div class="step active" data-step-indicator="1"><span>1</span><b>Описание</b></div><i></i><div class="step" data-step-indicator="2"><span>2</span><b>Уточнения</b></div><i></i><div class="step" data-step-indicator="3"><span>3</span><b>Карточка задачи</b></div><i></i><div class="step" data-step-indicator="4"><span>4</span><b>Публикация</b></div></div>
             <div id="status-message" class="status-message" role="status" aria-live="polite" hidden></div>
@@ -67,7 +72,11 @@
             <section id="stage-published" class="stage published-stage" hidden></section>
           </section>
 
-          <section class="task-list-section"><div class="section-heading"><div><h2>Ваши задачи</h2><p>Черновики и опубликованные проекты</p></div><label class="search-box"><span>⌕</span><input id="task-search" type="search" placeholder="Найти задачу" aria-label="Найти задачу"></label></div><div id="task-list" class="task-list"><div class="loading-row"><span class="spinner"></span>Загружаем задачи…</div></div></section>
+          <section class="task-list-section business-view-block"><div class="section-heading"><div><h2>Ваши задачи</h2><p>Черновики и опубликованные проекты</p></div><label class="search-box"><span>⌕</span><input id="task-search" type="search" placeholder="Найти задачу" aria-label="Найти задачу"></label></div><div id="task-list" class="task-list"><div class="loading-row"><span class="spinner"></span>Загружаем задачи…</div></div></section>
+          <section id="marketplace-view" class="marketplace-view" hidden aria-live="polite">
+            <div class="marketplace-toolbar"><button id="marketplace-back" class="button button-quiet">← Назад</button><span id="marketplace-context">РАБОТА С КОМАНДАМИ</span><select id="selected-team" aria-label="Выбранная команда" hidden></select><button id="milestone-start" class="button button-secondary" hidden>＋ Зафиксировать этап</button></div>
+            <div id="marketplace-content"></div>
+          </section>
           <footer class="footer"><span>импульс<span class="brand-dot">.</span> <span>·</span> Платформа практических проектов</span><span>Помогаем идеям становиться решениями</span></footer>
         </div>
       </main>

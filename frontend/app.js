@@ -1,4 +1,11 @@
-import { api, ApiError } from "./shared/api.js";
+import { api, ApiError, request } from "./shared/api.js";
+import {
+  createCatalogScreen,
+  createMilestoneScreen,
+  createProposalReviewScreen,
+  createProposalScreen,
+  createTeamsScreen,
+} from "./marketplace/marketplace.js";
 
 const FIELDS = [
   ["topic", "Тема", "Направление задачи"], ["title", "Название", "Короткое и понятное название"],
@@ -11,7 +18,7 @@ const FIELDS = [
 const FIELD_KEYS = FIELDS.map(([key]) => key);
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const state = { task: null, analysis: null, answers: {}, fields: blankFields(), saving: false, conflictTask: null, toastTimer: null, tasks: [] };
+const state = { task: null, analysis: null, answers: {}, fields: blankFields(), saving: false, conflictTask: null, toastTimer: null, tasks: [], role: "business", view: "business", activeTask: null, selectedTeamLoadId: 0 };
 
 function blankFields() { return Object.fromEntries(FIELD_KEYS.map((key) => [key, ""])); }
 function safeString(value) { return typeof value === "string" ? value : ""; }
@@ -384,12 +391,128 @@ function renderTaskList() {
     $("#empty-create")?.addEventListener("click", () => openEditor());
     return;
   }
-  $("#task-list").innerHTML = visible.map((task) => `<div class="task-row"><div class="task-main"><strong>${escapeHTML(task.title || task.topic || task.rawDescription || "Без названия")}</strong><small>${escapeHTML(task.topic || "Бизнес-задача")} · обновлено ${escapeHTML(formatDate(task.updatedAt))}</small></div><span class="task-status ${task.publicationStatus === "published" ? "published" : ""}">${task.publicationStatus === "published" ? "Опубликована" : "Черновик"}</span><span class="task-score">✳ ${Number.isFinite(task.score) ? task.score : 0}/100</span><span class="task-updated">Версия ${escapeHTML(task.revision)}</span><button class="button button-secondary task-open" data-open-task="${escapeHTML(task.id)}">Открыть</button></div>`).join("");
+  $("#task-list").innerHTML = visible.map((task) => `<div class="task-row"><div class="task-main"><strong>${escapeHTML(task.title || task.topic || task.rawDescription || "Без названия")}</strong><small>${escapeHTML(task.topic || "Бизнес-задача")} · обновлено ${escapeHTML(formatDate(task.updatedAt))}</small></div><span class="task-status ${task.publicationStatus === "published" ? "published" : ""}">${task.publicationStatus === "published" ? "Опубликована" : "Черновик"}</span><span class="task-score">✳ ${Number.isFinite(task.score) ? task.score : 0}/100</span><span class="task-updated">Версия ${escapeHTML(task.revision)}</span><div class="task-actions"><button class="button button-secondary task-open" data-open-task="${escapeHTML(task.id)}">Открыть</button>${task.publicationStatus === "published" ? `<button class="button button-quiet task-review" data-review-task="${escapeHTML(task.id)}">Отклики</button>` : ""}</div></div>`).join("");
   $$('[data-open-task]').forEach((button) => button.addEventListener("click", () => openExistingTask(button.dataset.openTask)));
+  $$('[data-review-task]').forEach((button) => button.addEventListener("click", () => openProposalReviewById(button.dataset.reviewTask)));
 }
 async function openExistingTask(id) {
   try { openEditor({ task: await api.getTask(id) }); }
   catch (error) { toast(friendlyError(error), "error"); }
+}
+function adaptMarketplaceTask(task) {
+  return {
+    ...task,
+    taskId: String(task?.taskId || task?.id || ""),
+    fields: task?.fields && typeof task.fields === "object" ? task.fields : task?.publishedVersion?.fields || fieldsFromTask(task || {}),
+  };
+}
+function navigate(view) {
+  state.view = view;
+  const business = view === "business";
+  $$(".business-view-block").forEach((element) => { element.hidden = !business; });
+  $("#marketplace-view").hidden = business;
+  $("#milestone-start").hidden = view !== "review";
+  $$("[data-view]").forEach((link) => link.classList.toggle("active", link.dataset.view === view || (view === "proposal" && link.dataset.view === "catalog") || (view === "review" && link.dataset.view === "business") || (view === "milestone" && link.dataset.view === "business")));
+  $("#selected-team").hidden = view !== "review";
+  const titles = { business: "Мои задачи", catalog: "Каталог проектов", teams: "Команды", proposal: "Отклик на задачу", review: "Отклики команд", milestone: "Этап проекта" };
+  $(".breadcrumbs strong").textContent = titles[view] || "Рабочее пространство";
+}
+function showMarketplaceScreen(view, screen, task = null) {
+  state.activeTask = task ? adaptMarketplaceTask(task) : state.activeTask;
+  navigate(view);
+  $("#marketplace-content").replaceChildren(screen);
+  $("#marketplace-context").textContent = state.role === "team" ? "РАБОТА ДЛЯ КОМАНД" : "РАБОТА С КОМАНДАМИ";
+  $("#marketplace-view").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function openCatalog() {
+  state.role = "team";
+  syncRoleControls();
+  const screen = createCatalogScreen({ onOpenTask: (task) => openProposal(adaptMarketplaceTask(task)) });
+  showMarketplaceScreen("catalog", screen);
+}
+function openProposal(task) {
+  state.activeTask = adaptMarketplaceTask(task);
+  const screen = createProposalScreen(state.activeTask, { onSubmitted: () => { toast("Предложение отправлено бизнесу"); openCatalog(); } });
+  showMarketplaceScreen("proposal", screen, task);
+}
+function openTeams() {
+  state.role = "team";
+  syncRoleControls();
+  const screen = createTeamsScreen({ onCreated: (team) => toast(`Профиль «${team.name}» создан`) });
+  showMarketplaceScreen("teams", screen);
+}
+async function openProposalReviewById(id) {
+  try { showProposalReview(await api.getTask(id)); }
+  catch (error) { toast(friendlyError(error), "error"); }
+}
+function showProposalReview(task) {
+  state.role = "business";
+  syncRoleControls();
+  const normalized = adaptMarketplaceTask(task);
+  state.activeTask = normalized;
+  const screen = createProposalReviewScreen(normalized, { onChanged: () => showProposalReview(normalized) });
+  showMarketplaceScreen("review", screen, normalized);
+  loadSelectedProposalTeams(normalized);
+}
+async function loadSelectedProposalTeams(task) {
+  const loadId = ++state.selectedTeamLoadId;
+  const isCurrent = () => loadId === state.selectedTeamLoadId && state.view === "review" && state.activeTask?.taskId === task.taskId;
+  const select = $("#selected-team");
+  select.replaceChildren(new Option("Загружаем выбранные команды…", ""));
+  select.disabled = true;
+  try {
+    const proposals = await request(`/tasks/${encodeURIComponent(task.taskId)}/proposals`);
+    if (!isCurrent()) return;
+    const selected = proposals.filter((proposal) => proposal.status === "selected");
+    if (!selected.length) {
+      select.replaceChildren(new Option("Сначала выберите команду в откликах", ""));
+      state.activeTask = { ...task, selectedTeamId: "" };
+    } else {
+      const previous = state.activeTask?.selectedTeamId;
+      select.replaceChildren(...selected.map((proposal) => new Option(proposal.team.name, proposal.teamId)));
+      select.value = selected.some((proposal) => proposal.teamId === previous) ? previous : selected[0].teamId;
+      state.activeTask = { ...task, selectedTeamId: select.value };
+    }
+  } catch (error) {
+    if (!isCurrent()) return;
+    select.replaceChildren(new Option("Не удалось загрузить выбранные команды", ""));
+    toast(error.message || "Не удалось загрузить выбранные команды.", "error");
+  } finally {
+    if (isCurrent()) select.disabled = false;
+  }
+}
+function showMilestone() {
+  if (!state.activeTask?.taskId) { toast("Не выбрана опубликованная задача.", "warning"); return; }
+  const teamId = $("#selected-team").value;
+  if (!teamId) { toast("Сначала выберите команду на экране откликов.", "warning"); return; }
+  const task = { ...adaptMarketplaceTask(state.activeTask), selectedTeamId: teamId };
+  const screen = createMilestoneScreen(task, {
+    onCreated: () => toast("Этап записан. Подтвердите его после проверки результата."),
+    onConfirmed: () => toast("Этап подтверждён: начислено 10 баллов команде"),
+  });
+  const teamSelect = screen.querySelector('select[name="teamId"]');
+  if (teamSelect) {
+    const observer = new MutationObserver(() => {
+      if ([...teamSelect.options].some((option) => option.value === task.selectedTeamId)) {
+        teamSelect.value = task.selectedTeamId;
+        observer.disconnect();
+      }
+    });
+    observer.observe(teamSelect, { childList: true });
+  }
+  showMarketplaceScreen("milestone", screen, task);
+}
+function syncRoleControls() {
+  const isTeam = state.role === "team";
+  $$('[data-role]').forEach((button) => {
+    const active = button.dataset.role === state.role;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  $$('[data-nav-role]').forEach((item) => { item.hidden = item.dataset.navRole !== state.role; });
+  $("#workspace-name").textContent = isTeam ? "Профиль команды" : "Кофейня «Север»";
+  $("#workspace-subtitle").textContent = isTeam ? "Кабинет команды" : "Кабинет бизнеса";
+  $("#profile-role").textContent = isTeam ? "Участник команды" : "Представитель бизнеса";
 }
 function onConflictAction(event) {
   const action = event.target.closest("[data-conflict]")?.dataset.conflict;
@@ -416,6 +539,33 @@ function init() {
   $("#save-confirm").addEventListener("click", () => persistDraft({ confirm: true }));
   $("#publish").addEventListener("click", publishTask);
   $("#task-search").addEventListener("input", renderTaskList);
+  $$('[data-role]').forEach((button) => button.addEventListener("click", () => {
+    state.role = button.dataset.role;
+    syncRoleControls();
+    if (state.role === "team") openCatalog();
+    else navigate("business");
+  }));
+  $$('[data-view]').forEach((link) => link.addEventListener("click", (event) => {
+    event.preventDefault();
+    if (link.dataset.view === "business") navigate("business");
+    else if (link.dataset.view === "catalog") openCatalog();
+    else if (link.dataset.view === "teams") openTeams();
+  }));
+  $("#marketplace-back").addEventListener("click", () => {
+    if (state.view === "proposal") openCatalog();
+    else if (state.view === "milestone" && state.activeTask) showProposalReview(state.activeTask);
+    else if (state.view === "review") navigate("business");
+    else if (state.view === "teams") openCatalog();
+    else {
+      state.role = "business";
+      syncRoleControls();
+      navigate("business");
+    }
+  });
+  $("#selected-team").addEventListener("change", (event) => {
+    if (state.activeTask) state.activeTask = { ...state.activeTask, selectedTeamId: event.target.value };
+  });
+  $("#milestone-start").addEventListener("click", showMilestone);
   $("#editor").addEventListener("click", (event) => {
     const back = event.target.closest("[data-back]");
     if (back) { showStage(Number(back.dataset.back)); return; }
@@ -446,7 +596,8 @@ function init() {
       setStatus("Чтобы отозвать подтверждение, измените значение поля и сохраните черновик.", "warning");
     }
   });
-  $$('[data-notice]').forEach((link) => link.addEventListener("click", (event) => { event.preventDefault(); toast(link.dataset.notice, "warning"); }));
+  state.role = "business";
+  syncRoleControls();
   refreshTasks();
 }
 
