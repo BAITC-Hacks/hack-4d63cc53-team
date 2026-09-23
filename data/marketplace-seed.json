@@ -1,0 +1,23 @@
+{
+  "tasks": [
+    {"key":"cafe-low","rawDescription":"Сократить очереди в кафе","fields":{"topic":"кафе","title":"Очереди в обед","context":"","need":"Сократить очереди","users":"","data":"","constraints":"","expectedResult":"","successCriteria":"","contact":"","interactionFormat":"","feedbackProcess":""},"confirmFields":["topic","title","need"]},
+    {"key":"store","rawDescription":"Понять причины возвратов в интернет-магазине","fields":{"topic":"магазин","title":"Аналитика возвратов","context":"Онлайн-магазин одежды","need":"Снизить долю возвратов","users":"Менеджеры каталога","data":"Выгрузка заказов за год","constraints":"Без персональных данных","expectedResult":"Дашборд причин","successCriteria":"Три ключевые причины","contact":"Ирина, product@demo.local","interactionFormat":"Еженедельный созвон","feedbackProcess":"Комментарий в трекере"},"confirmFields":["topic","title","context","need","users","data","constraints","expectedResult","successCriteria","contact","interactionFormat","feedbackProcess"]},
+    {"key":"warehouse","rawDescription":"Снизить ошибки комплектации на складе","fields":{"topic":"склад","title":"Проверка комплектации","context":"Склад e-commerce","need":"Снизить ошибки","users":"Кладовщики","data":"Логи сканеров","constraints":"Пилот за 3 недели","expectedResult":"Прототип проверки","successCriteria":"Ошибок на 15% меньше","contact":"Демо-команда","interactionFormat":"Чат","feedbackProcess":"Приёмка на пилоте"},"confirmFields":["topic","title","context","need","users","data","constraints","expectedResult","successCriteria","contact","interactionFormat","feedbackProcess"]},
+    {"key":"education","rawDescription":"Улучшить запись студентов на консультации","fields":{"topic":"образование","title":"Запись на консультации","context":"Учебный центр","need":"Упростить запись","users":"Студенты и наставники","data":"Расписание консультаций","constraints":"Только веб","expectedResult":"Макет сервиса","successCriteria":"Запись меньше 2 минут","contact":"Куратор демо","interactionFormat":"Два созвона","feedbackProcess":"Тест с группой"},"confirmFields":["topic","title","context","need","users","data","constraints","expectedResult","successCriteria","contact","interactionFormat","feedbackProcess"]},
+    {"key":"service","rawDescription":"Классифицировать обращения сервисной компании","fields":{"topic":"сервис","title":"Маршрутизация обращений","context":"Сервисная компания","need":"Быстрее направлять обращения","users":"Операторы","data":"Анонимизированные заявки","constraints":"Не использовать внешние данные","expectedResult":"Правила классификации","successCriteria":"80% заявок направлены верно","contact":"Демо-менеджер","interactionFormat":"Асинхронно","feedbackProcess":"Проверка выборки"},"confirmFields":["topic","title","context","need","users","data","constraints","expectedResult","successCriteria","contact","interactionFormat","feedbackProcess"]}
+  ],
+  "teams": [
+    {"key":"insight","name":"Insight Lab","interests":["аналитика"],"skills":["Python","SQL"],"technologies":["Pandas","SQLite"]},
+    {"key":"flow","name":"Flow Makers","interests":["сервисы"],"skills":["UX","JavaScript"],"technologies":["HTML","CSS"]},
+    {"key":"warehouse","name":"Stock Wise","interests":["логистика"],"skills":["Data Science","Python"],"technologies":["FastAPI"]},
+    {"key":"edu","name":"Edu Spark","interests":["образование"],"skills":["Research","Frontend"],"technologies":["Figma","JavaScript"]},
+    {"key":"service","name":"Service Sense","interests":["автоматизация"],"skills":["Backend","QA"],"technologies":["Python","SQLite"]}
+  ],
+  "proposals": [
+    {"taskKey":"cafe-low","teamKey":"flow","idea":"Быстрый экран предзаказа","plan":"Интервью, макет, тестирование","deadline":"2 недели","prototypeUrl":"https://example.com/cafe-prototype","status":"pending"},
+    {"taskKey":"store","teamKey":"insight","idea":"Дашборд возвратов","plan":"Проверить данные и собрать метрики","deadline":"3 недели","prototypeUrl":"https://example.com/store-prototype","status":"selected"},
+    {"taskKey":"warehouse","teamKey":"warehouse","idea":"Контроль сканирования","plan":"Проанализировать логи и сделать пилот","deadline":"3 недели","prototypeUrl":"https://example.com/warehouse-prototype","status":"pending"},
+    {"taskKey":"education","teamKey":"edu","idea":"Календарь консультаций","plan":"Собрать сценарии и создать прототип","deadline":"2 недели","prototypeUrl":"https://example.com/education-prototype","status":"pending"},
+    {"taskKey":"service","teamKey":"service","idea":"Правила распределения","plan":"Разметить заявки и проверить правила","deadline":"2 недели","prototypeUrl":"https://example.com/service-prototype","status":"pending"}
+  ]
+}
