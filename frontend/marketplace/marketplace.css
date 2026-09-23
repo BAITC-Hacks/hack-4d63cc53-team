@@ -1,17 +1,140 @@
-:root { font-family: system-ui, sans-serif; color: #172b42; background: #f3f6fa; }
-body { margin: 0; } header, main { max-width: 1100px; margin: auto; padding: 24px; }
-header { padding-bottom: 8px; } a { color: #174db1; } h1 { margin-bottom: 8px; }
-.toolbar, nav, .marketplace-screen form { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
-nav { margin: 24px 0; } label { display: flex; flex-direction: column; gap: 6px; flex: 1 1 210px; }
-input, select, textarea, button { font: inherit; padding: 10px 12px; border: 1px solid #acbacd; border-radius: 8px; box-sizing: border-box; }
-input, select, textarea { background: white; width: 100%; } textarea { min-height: 96px; resize: vertical; }
-button { color: white; background: #244f9c; cursor: pointer; } button:hover { background: #163d81; }
-button:disabled { opacity: .55; cursor: default; } button[aria-current="page"] { outline: 3px solid #93baff; }
-[hidden] { display: none !important; } :focus-visible { outline: 3px solid #df970c; outline-offset: 3px; }
-.marketplace-card { background: white; border: 1px solid #d8e0ea; border-radius: 12px; padding: 20px; margin: 16px 0; }
-.marketplace-priority { border: 2px solid #b27b13; background: #fffdf2; }
-.marketplace-card button, .marketplace-card a { margin: 8px 10px 0 0; }
-dl { display: grid; grid-template-columns: minmax(130px, 1fr) 3fr; gap: 8px 20px; }
-dt { font-weight: 600; } dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-[data-status], #message { color: #244f78; } h2 small { font-size: .75em; font-weight: normal; }
-@media (max-width: 600px) { header, main { padding: 16px; } dl { grid-template-columns: 1fr; } dd { margin-bottom: 8px; } nav button { flex: 1 1 40%; } }
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #20251f;
+  background: #f6f7f3;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+header, main { max-width: 1200px; margin: auto; padding: 32px; }
+header { padding-bottom: 0; }
+header > p { max-width: 760px; color: #667263; }
+h1, h2, h3 { line-height: 1.25; letter-spacing: -.025em; overflow-wrap: anywhere; }
+h1 { margin: 24px 0 12px; font-size: 34px; }
+h2 { margin: 0 0 24px; font-size: 24px; }
+h3 { margin: 0 0 16px; font-size: 20px; }
+a { color: #24583e; text-underline-offset: 3px; }
+button, input, select, textarea { font: inherit; }
+button, input, select, textarea, summary { min-height: 44px; }
+button, input, select, textarea {
+  border: 1px solid #b8c2b3;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+input, select, textarea { width: 100%; min-width: 0; color: inherit; background: #fff; }
+input::placeholder, textarea::placeholder { color: #667263; opacity: 1; }
+textarea { min-height: 136px; resize: vertical; line-height: 1.6; }
+button {
+  color: #fff;
+  background: #24583e;
+  border-color: #24583e;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover { background: #173e2a; border-color: #173e2a; }
+button:disabled { opacity: .55; cursor: default; }
+button[aria-current="page"] { color: #20251f; background: #c9f278; border-color: #a7cb64; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 3px solid #24583e; outline-offset: 4px; }
+
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid #dde3d8;
+  border-radius: 16px;
+  background: #fff;
+}
+nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0; }
+nav button { color: #24583e; background: #fff; border-color: #ccd6c7; }
+nav button:hover { color: #24583e; background: #edf3e8; border-color: #91ab85; }
+label { display: flex; flex-direction: column; gap: 8px; min-width: 0; font-size: 14px; font-weight: 600; }
+.marketplace-screen { width: 100%; min-width: 0; }
+.marketplace-screen form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: end;
+  padding: 24px;
+  border: 1px solid #dde3d8;
+  border-radius: 16px;
+  background: #fff;
+}
+.marketplace-screen form > button { justify-self: start; }
+.marketplace-field--wide { grid-column: 1 / -1; }
+.marketplace-screen [data-list] { margin-top: 20px; }
+.marketplace-screen--catalog form { grid-template-columns: minmax(0, 1fr) minmax(180px, .6fr) auto; }
+.marketplace-screen--catalog [data-list], .marketplace-screen--teams [data-list] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.marketplace-card {
+  min-width: 0;
+  margin: 20px 0 0;
+  padding: 24px;
+  border: 1px solid #dde3d8;
+  border-radius: 16px;
+  background: #fff;
+}
+.marketplace-screen--catalog .marketplace-card, .marketplace-screen--teams .marketplace-card { margin: 0; }
+.marketplace-priority { border-color: #99b776; box-shadow: inset 0 3px 0 #c9f278; }
+.marketplace-card__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 16px; color: #667263; font-size: 13px; }
+.marketplace-card__meta > span { overflow-wrap: anywhere; }
+.marketplace-badge { display: inline-flex; align-items: center; border-radius: 6px; padding: 4px 8px; color: #665323; background: #f6efd7; font-size: 12px; font-weight: 600; line-height: 1.5; }
+.marketplace-badge--positive { color: #24583e; background: #e8f3dd; }
+.marketplace-badge--muted { color: #667263; background: #edf0e9; }
+.marketplace-card__summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  margin: 0 0 20px;
+  color: #667263;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.marketplace-card__score, .marketplace-card__points { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 16px 0; color: #667263; font-size: 13px; }
+.marketplace-card__score strong { color: #24583e; font-size: 24px; letter-spacing: -.03em; }
+.marketplace-card__points strong { color: #24583e; font-size: 20px; }
+.marketplace-card__details { margin-top: 20px; border-top: 1px solid #e6ebe2; }
+.marketplace-card__details summary { padding: 14px 0; color: #24583e; font-size: 14px; font-weight: 600; cursor: pointer; }
+.marketplace-card__details summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.marketplace-card__details[open] summary { margin-bottom: 8px; }
+.marketplace-card__details dl { grid-template-columns: 1fr; gap: 4px; margin: 0; }
+.marketplace-card__details dd { margin-bottom: 16px; }
+.marketplace-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 20px; }
+.marketplace-card__actions a { display: inline-flex; align-items: center; min-height: 44px; margin-right: auto; font-size: 14px; }
+.marketplace-card__actions [data-decision="rejected"] { color: #5f645b; background: #fff; border-color: #c8d0c3; }
+.marketplace-card__actions [data-decision="rejected"]:hover { background: #f2f4ef; }
+dl { display: grid; grid-template-columns: minmax(120px, 1fr) 3fr; gap: 12px 20px; margin: 20px 0; font-size: 14px; }
+dt { color: #667263; font-weight: 500; }
+dd { min-width: 0; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+[data-status], #message { color: #667263; font-size: 14px; }
+[data-status]:empty, #message:empty { display: none; }
+[data-status] { margin: 20px 0; }
+h2 small { display: block; margin-top: 8px; color: #667263; font-size: 16px; font-weight: 400; letter-spacing: normal; }
+
+@media (max-width: 760px) {
+  header, main { padding: 24px 20px; }
+  header { padding-bottom: 0; }
+  h1 { font-size: 28px; }
+  .toolbar, .marketplace-screen form, .marketplace-screen--catalog form { grid-template-columns: 1fr; padding: 20px; }
+  .marketplace-screen--catalog [data-list], .marketplace-screen--teams [data-list] { grid-template-columns: 1fr; }
+  .marketplace-screen form > button { justify-self: stretch; }
+  .marketplace-card { padding: 20px; }
+  dl { grid-template-columns: 1fr; gap: 4px; }
+  dd { margin-bottom: 12px; }
+  nav button { flex: 1 1 42%; }
+  .marketplace-card__actions > button { flex: 1 1 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}

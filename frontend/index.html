@@ -13,24 +13,22 @@
         <a class="brand" href="#top" aria-label="На главную">
           <span class="brand-mark">и</span><span>импульс<span class="brand-dot">.</span></span>
         </a>
-        <div class="workspace-label">РАБОЧЕЕ ПРОСТРАНСТВО</div>
-        <div class="workspace"><span class="workspace-icon">К</span><span><strong id="workspace-name">Кофейня «Север»</strong><small id="workspace-subtitle">Кабинет бизнеса</small></span><span class="chevron">⌄</span></div>
-        <div class="workspace-label role-label">РЕЖИМ РАБОТЫ</div>
+        <div class="workspace"><span class="workspace-icon">К</span><span><strong id="workspace-name">Кофейня «Север»</strong><small id="workspace-subtitle">Кабинет бизнеса</small></span></div>
+        <div class="workspace-label role-label">Режим</div>
         <div class="role-switch" role="group" aria-label="Выберите режим работы">
           <button class="role-button active" type="button" data-role="business">Бизнес</button>
           <button class="role-button" type="button" data-role="team">Команда</button>
         </div>
         <nav class="side-nav" aria-label="Основная навигация">
-          <a class="nav-item active" href="#workspace" data-view="business" data-nav-role="business"><span class="nav-icon">▤</span>Мои задачи</a>
-          <a class="nav-item" href="#marketplace" data-view="catalog" data-nav-role="team"><span class="nav-icon">◫</span>Каталог проектов</a>
-          <a class="nav-item" href="#marketplace" data-view="teams" data-nav-role="team"><span class="nav-icon">♧</span>Команды</a>
+          <a class="nav-item active" href="#workspace" data-view="business" data-nav-role="business">Мои задачи</a>
+          <a class="nav-item" href="#marketplace" data-view="catalog" data-nav-role="team">Каталог проектов</a>
+          <a class="nav-item" href="#marketplace" data-view="teams" data-nav-role="team">Команды</a>
         </nav>
-        <div class="sidebar-bottom"><div class="help-icon">?</div><div><strong>Нужна помощь?</strong><small>Мы на связи</small></div><span class="chevron">↗</span></div>
         <div class="profile"><div class="avatar">АС</div><div><strong>Алия Садыкова</strong><small id="profile-role">Представитель бизнеса</small></div><span class="chevron">···</span></div>
       </aside>
 
       <main id="top" class="main-area">
-        <header class="topbar"><div class="breadcrumbs">Рабочее пространство <span>/</span> <strong>Мои задачи</strong></div><div class="top-actions"><span id="server-connection" class="connection checking" aria-live="polite"><i></i>Проверяем сервер…</span><button class="icon-button" aria-label="Уведомления">♧<b></b></button><div class="avatar small">АС</div></div></header>
+        <header class="topbar"><div class="breadcrumbs">Рабочее пространство <span>/</span> <strong>Мои задачи</strong></div><div class="top-actions"><span id="server-connection" class="connection checking" aria-live="polite"><i></i>Проверяем подключение…</span></div></header>
         <div id="workspace" class="content">
           <section class="page-heading business-view-block">
             <div><div class="eyebrow">ВАШИ ИДЕИ — НАЧАЛО БОЛЬШИХ ПРОЕКТОВ</div><h1>Мои задачи</h1><p>Опишите задачу простыми словами. Мы поможем превратить её в понятный проект для студенческих команд.</p></div>
@@ -38,11 +36,11 @@
           </section>
 
           <section class="overview-grid business-view-block" aria-label="Обзор задач">
-            <article class="metric-card"><div class="metric-label">Всего задач <span>↗</span></div><strong id="stat-total">—</strong><small>в вашем рабочем пространстве</small></article>
-            <article class="metric-card"><div class="metric-label">Опубликовано <span class="metric-green">●</span></div><strong id="stat-published">—</strong><small>доступны студенческим командам</small></article>
-            <article class="metric-card"><div class="metric-label">Средний рейтинг <span class="metric-purple">✳</span></div><strong id="stat-score">—</strong><small>готовность описаний к работе</small></article>
-            <article class="tip-card"><div class="tip-icon">✳</div><div><strong>Хорошее описание — сильный старт</strong><p>Чем яснее задача, тем точнее команды смогут предложить решение.</p></div></article>
+            <article class="metric-card"><div class="metric-label">Всего задач</div><strong id="stat-total">—</strong><small>в рабочем пространстве</small></article>
+            <article class="metric-card"><div class="metric-label">Опубликовано</div><strong id="stat-published">—</strong><small>доступны студенческим командам</small></article>
+            <article class="metric-card"><div class="metric-label">Средняя готовность</div><strong id="stat-score">—</strong><small>по сохранённым задачам</small></article>
           </section>
+          <aside class="tip-card business-view-block"><strong>Хорошее описание — сильный старт</strong><p>Чем яснее задача, тем точнее команды смогут предложить решение.</p></aside>
 
           <section id="editor" class="editor-card business-view-block" hidden>
             <div class="editor-header"><div><div class="eyebrow">МАСТЕР СОЗДАНИЯ</div><h2 id="editor-title">Новая задача</h2><p>Сохранение происходит на сервере. Черновик можно продолжить позже.</p></div><button id="close-editor" class="icon-button close-button" aria-label="Закрыть редактор">×</button></div>
@@ -53,17 +51,17 @@
               <label class="field-label" for="description">Описание задачи</label>
               <textarea id="description" rows="5" maxlength="10000" placeholder="Например: в нашей кофейне гости часто долго ждут заказ в обед. Хотим понять, как ускорить обслуживание…"></textarea>
               <div class="field-foot"><span>Не нужно подбирать специальные слова</span><span id="description-count">0 / 10 000</span></div>
-              <div class="form-actions"><span class="privacy-note">✦ AI поможет структурировать идею — вы проверите каждый пункт</span><button id="analyze" class="button button-primary">Проанализировать <span>→</span></button></div>
+              <div class="form-actions"><span class="privacy-note">AI поможет структурировать идею — вы проверите каждый пункт</span><button id="analyze" class="button button-primary">Проанализировать</button></div>
             </section>
             <section id="stage-questions" class="stage" hidden>
               <div class="stage-title"><span class="stage-number">02</span><div><h3>Пара уточнений</h3><p>Ваши ответы помогут командам лучше понять задачу. Ответы сохраняются в карточку.</p></div></div>
-              <div id="ai-mode" class="ai-mode"></div>
+              <div id="ai-mode" class="mode-container"></div>
               <div id="questions-list" class="questions-list"></div>
               <div class="form-actions"><button class="button button-quiet" data-back="1">← К описанию</button><button id="apply-answers" class="button button-primary">Перейти к карточке <span>→</span></button></div>
             </section>
             <section id="stage-card" class="stage" hidden>
               <div class="stage-title"><span class="stage-number">03</span><div><h3>Проверьте и дополните карточку</h3><p>Все поля можно менять. Подтвердите те, за которые готовы отвечать перед публикацией.</p></div></div>
-              <div class="card-toolbar"><div id="card-mode" class="ai-mode"></div><div id="revision-label" class="revision-label"></div></div>
+              <div class="card-toolbar"><div id="card-mode" class="mode-container"></div><div id="revision-label" class="revision-label"></div></div>
               <div id="fields-grid" class="fields-grid"></div>
               <div id="score-panel" class="score-panel" hidden></div>
               <div class="form-actions card-actions"><button class="button button-quiet" data-back="2">← К уточнениям</button><div class="action-group"><button id="save-draft" class="button button-secondary">Сохранить черновик</button><button id="save-confirm" class="button button-primary">Сохранить и пересчитать</button></div></div>
@@ -74,7 +72,7 @@
 
           <section class="task-list-section business-view-block"><div class="section-heading"><div><h2>Ваши задачи</h2><p>Черновики и опубликованные проекты</p></div><label class="search-box"><span>⌕</span><input id="task-search" type="search" placeholder="Найти задачу" aria-label="Найти задачу"></label></div><div id="task-list" class="task-list"><div class="loading-row"><span class="spinner"></span>Загружаем задачи…</div></div></section>
           <section id="marketplace-view" class="marketplace-view" hidden aria-live="polite">
-            <div class="marketplace-toolbar"><button id="marketplace-back" class="button button-quiet">← Назад</button><span id="marketplace-context">РАБОТА С КОМАНДАМИ</span><select id="selected-team" aria-label="Выбранная команда" hidden></select><button id="milestone-start" class="button button-secondary" hidden>＋ Зафиксировать этап</button></div>
+            <div class="marketplace-toolbar"><button id="marketplace-back" class="button button-quiet">← Назад</button><span id="marketplace-context" class="marketplace-context">РАБОТА С КОМАНДАМИ</span><select id="selected-team" aria-label="Выбранная команда" hidden></select><button id="milestone-start" class="button button-secondary" hidden>＋ Зафиксировать этап</button></div>
             <div id="marketplace-content"></div>
           </section>
           <footer class="footer"><span>импульс<span class="brand-dot">.</span> <span>·</span> Платформа практических проектов</span><span>Помогаем идеям становиться решениями</span></footer>

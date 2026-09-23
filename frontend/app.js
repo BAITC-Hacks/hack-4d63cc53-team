@@ -119,7 +119,10 @@ function normalizeAnalysis(payload, description) {
 }
 function renderMode(target, analysis) {
   const fallback = analysis?.mode !== "openai";
-  const text = fallback ? `Резервный AI-режим · ${analysis?.reason || "AI-провайдер недоступен"}` : "AI-анализ готов · проверьте каждое предложение";
+  const reason = analysis?.reason?.startsWith("AI_MODE=fallback:")
+    ? "Базовые вопросы помогут заполнить карточку вручную"
+    : analysis?.reason || "AI-провайдер недоступен";
+  const text = fallback ? `Резервный AI-режим · ${reason}` : "AI-анализ готов · проверьте каждое предложение";
   target.innerHTML = `<span class="ai-mode ${fallback ? "fallback" : ""}">${escapeHTML(text)}</span>`;
 }
 function renderQuestions(analysis) {
@@ -256,7 +259,7 @@ function renderScore(task) {
   const readiness = ({ draft: "Черновик", working: "В работе", ready: "Готова к публикации", priority: "Высокая готовность" })[task.readiness] || "Оценка готовности";
   const breakdown = Array.isArray(task.scoreBreakdown) ? task.scoreBreakdown : [];
   const missing = Array.isArray(task.missingFields) ? task.missingFields : [];
-  panel.innerHTML = `<div class="score-header"><div class="score-ring" style="--score-angle:${score * 3.6}deg"><strong>${score}</strong></div><div class="score-copy"><strong>Готовность описания · ${score}/100</strong><p>${escapeHTML(readiness)} — рейтинг рассчитан сервером по подтверждённым данным</p></div></div>
+  panel.innerHTML = `<div class="score-header"><div class="score-ring" style="--score-angle:${score * 3.6}deg"><strong>${score}</strong></div><div class="score-copy"><strong>Готовность описания · ${score}/100</strong><p>${escapeHTML(readiness)} — оценка опирается на заполненные и подтверждённые сведения</p></div></div>
     <div class="score-breakdown">${breakdown.map((row) => `<div class="score-row"><span>${escapeHTML(row.label || "Показатель")}</span><b>${Number(row.points) || 0}/${Number(row.maxPoints) || 0}</b></div>`).join("")}</div>
     ${missing.length ? `<div class="missing-list"><b>Чтобы усилить задачу:</b> ${missing.map((key) => escapeHTML(FIELDS.find(([name]) => name === key)?.[1] || key)).join(" · ")}</div>` : `<div class="missing-list">Все оцениваемые сведения подтверждены.</div>`}`;
 }
@@ -404,7 +407,7 @@ function renderTaskList() {
     $("#empty-create")?.addEventListener("click", () => openEditor());
     return;
   }
-  $("#task-list").innerHTML = visible.map((task) => `<div class="task-row"><div class="task-main"><strong>${escapeHTML(task.title || task.topic || task.rawDescription || "Без названия")}</strong><small>${escapeHTML(task.topic || "Бизнес-задача")} · обновлено ${escapeHTML(formatDate(task.updatedAt))}</small></div><span class="task-status ${task.publicationStatus === "published" ? "published" : ""}">${task.publicationStatus === "published" ? "Опубликована" : "Черновик"}</span><span class="task-score">✳ ${Number.isFinite(task.score) ? task.score : 0}/100</span><span class="task-updated">Версия ${escapeHTML(task.revision)}</span><div class="task-actions"><button class="button button-secondary task-open" data-open-task="${escapeHTML(task.id)}">Открыть</button>${task.publicationStatus === "published" ? `<button class="button button-quiet task-review" data-review-task="${escapeHTML(task.id)}">Отклики</button>` : ""}</div></div>`).join("");
+  $("#task-list").innerHTML = visible.map((task) => `<div class="task-row"><div class="task-main"><strong>${escapeHTML(task.title || task.topic || task.rawDescription || "Без названия")}</strong><small>${escapeHTML(task.topic || "Бизнес-задача")} · обновлено ${escapeHTML(formatDate(task.updatedAt))}</small></div><span class="task-status ${task.publicationStatus === "published" ? "published" : ""}">${task.publicationStatus === "published" ? "Опубликована" : "Черновик"}</span><span class="task-score">${Number.isFinite(task.score) ? task.score : 0}/100 · готовность</span><span class="task-updated">Версия ${escapeHTML(task.revision)}</span><div class="task-actions"><button class="button button-secondary task-open" data-open-task="${escapeHTML(task.id)}">Открыть</button>${task.publicationStatus === "published" ? `<button class="button button-quiet task-review" data-review-task="${escapeHTML(task.id)}">Отклики</button>` : ""}</div></div>`).join("");
   $$('[data-open-task]').forEach((button) => button.addEventListener("click", () => openExistingTask(button.dataset.openTask)));
   $$('[data-review-task]').forEach((button) => button.addEventListener("click", () => openProposalReviewById(button.dataset.reviewTask)));
 }
