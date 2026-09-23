@@ -33,7 +33,7 @@ class MarketplaceTests(unittest.TestCase):
     def publish(self, topic, readiness, target_score):
         fields = {"topic": topic, "title": topic, "context": "Контекст", "need": "Потребность", "data": "Данные", "expectedResult": "Результат", "successCriteria": "Критерий", "constraints": "Ограничение", "users": "Пользователи", "contact": "Контакт", "interactionFormat": "Созвон", "feedbackProcess": "Приемка"}
         task = self.tasks.create(topic, fields)
-        groups = {40: ["context", "need", "data"], 100: list(fields)}
+        groups = {40: ["topic", "title", "context", "need", "data"], 100: list(fields)}
         _, task = self.tasks.confirm(task["id"], task["revision"], groups[target_score])
         _, task = self.tasks.publish(task["id"], task["revision"])
         self.assertEqual(task["score"], target_score)

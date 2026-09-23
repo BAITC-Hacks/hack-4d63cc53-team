@@ -98,6 +98,13 @@ class MarketplaceRepository:
             ))
         return milestone
 
+    def list_milestones(self, task_id: str) -> list[dict]:
+        with self._connection() as db:
+            rows = db.execute("""SELECT m.*, t.name AS team_name FROM marketplace_milestones m
+                JOIN marketplace_teams t ON t.id = m.team_id
+                WHERE m.task_id = ? ORDER BY m.created_at DESC, m.id""", (task_id,)).fetchall()
+        return [decode_milestone(row, include_team=True) for row in rows]
+
     def confirm_milestone(self, milestone_id: str) -> tuple[str, dict | None]:
         with self._connection() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -132,9 +139,12 @@ def decode_proposal(row, include_team=False):
     return result
 
 
-def decode_milestone(row):
-    return {"id": row["id"], "taskId": row["task_id"], "teamId": row["team_id"], "description": row["description"],
-            "evidence": row["evidence"], "confirmedAt": row["confirmed_at"], "pointsAwarded": row["points_awarded"], "createdAt": row["created_at"]}
+def decode_milestone(row, include_team=False):
+    result = {"id": row["id"], "taskId": row["task_id"], "teamId": row["team_id"], "description": row["description"],
+              "evidence": row["evidence"], "confirmedAt": row["confirmed_at"], "pointsAwarded": row["points_awarded"], "createdAt": row["created_at"]}
+    if include_team:
+        result["team"] = {"id": row["team_id"], "name": row["team_name"]}
+    return result
 
 
 def utc_now() -> str:

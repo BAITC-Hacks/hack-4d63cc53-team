@@ -1,0 +1,17 @@
+:root { font-family: system-ui, sans-serif; color: #172b42; background: #f3f6fa; }
+body { margin: 0; } header, main { max-width: 1100px; margin: auto; padding: 24px; }
+header { padding-bottom: 8px; } a { color: #174db1; } h1 { margin-bottom: 8px; }
+.toolbar, nav, .marketplace-screen form { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
+nav { margin: 24px 0; } label { display: flex; flex-direction: column; gap: 6px; flex: 1 1 210px; }
+input, select, textarea, button { font: inherit; padding: 10px 12px; border: 1px solid #acbacd; border-radius: 8px; box-sizing: border-box; }
+input, select, textarea { background: white; width: 100%; } textarea { min-height: 96px; resize: vertical; }
+button { color: white; background: #244f9c; cursor: pointer; } button:hover { background: #163d81; }
+button:disabled { opacity: .55; cursor: default; } button[aria-current="page"] { outline: 3px solid #93baff; }
+[hidden] { display: none !important; } :focus-visible { outline: 3px solid #df970c; outline-offset: 3px; }
+.marketplace-card { background: white; border: 1px solid #d8e0ea; border-radius: 12px; padding: 20px; margin: 16px 0; }
+.marketplace-priority { border: 2px solid #b27b13; background: #fffdf2; }
+.marketplace-card button, .marketplace-card a { margin: 8px 10px 0 0; }
+dl { display: grid; grid-template-columns: minmax(130px, 1fr) 3fr; gap: 8px 20px; }
+dt { font-weight: 600; } dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+[data-status], #message { color: #244f78; } h2 small { font-size: .75em; font-weight: normal; }
+@media (max-width: 600px) { header, main { padding: 16px; } dl { grid-template-columns: 1fr; } dd { margin-bottom: 8px; } nav button { flex: 1 1 40%; } }

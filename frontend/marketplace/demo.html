@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Marketplace · HackAlem</title><link rel="stylesheet" href="./marketplace.css"></head>
+<body><header><a href="/">← Основной экран бизнеса</a><h1>Задачи и команды</h1><p>Демонстрация marketplace: предложение → решение бизнеса → подтверждение этапа.</p></header>
+<main><div class="toolbar"><label>Роль<select id="role"><option value="team">Команда</option><option value="business">Бизнес</option></select></label><label>Моя команда<select id="team"></select></label><label>Задача<select id="task"></select></label></div>
+<nav aria-label="Marketplace"><button data-page="catalog">Каталог</button><button data-page="teams">Команды</button><button data-page="proposal">Отправить отклик</button><button data-page="review">Решения бизнеса</button><button data-page="milestones">Этапы</button></nav><p id="message" role="status"></p><div id="screen"></div></main>
+<script>window.API_BASE = location.origin + "/api";</script><script type="module" src="./demo.js"></script></body></html>

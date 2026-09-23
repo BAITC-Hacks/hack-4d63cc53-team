@@ -81,6 +81,13 @@ def create_milestone(request: Request, body: MilestoneCreate):
     return repository(request).create_milestone(values)
 
 
+@router.get("/tasks/{task_id}/milestones")
+def task_milestones(request: Request, task_id: str):
+    if not published(request, task_id):
+        raise HTTPException(404, "Published task not found")
+    return repository(request).list_milestones(task_id)
+
+
 @router.post("/milestones/{milestone_id}/confirm")
 def confirm_milestone(request: Request, milestone_id: str):
     status, milestone = repository(request).confirm_milestone(milestone_id)
