@@ -18,7 +18,7 @@ const FIELDS = [
 const FIELD_KEYS = FIELDS.map(([key]) => key);
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
-const state = { task: null, analysis: null, answers: {}, fields: blankFields(), saving: false, conflictTask: null, toastTimer: null, tasks: [], role: "business", view: "business", activeTask: null, selectedTeamLoadId: 0 };
+const state = { task: null, analysis: null, answers: {}, fields: blankFields(), saving: false, conflictTask: null, toastTimer: null, tasks: [], role: "business", view: "business", activeTask: null, selectedTeamLoadId: 0, editorOpen: false, navigationId: 0 };
 
 function blankFields() { return Object.fromEntries(FIELD_KEYS.map((key) => [key, ""])); }
 function safeString(value) { return typeof value === "string" ? value : ""; }
@@ -62,6 +62,9 @@ function showStage(number) {
   clearStatus();
 }
 function openEditor({ task = null } = {}) {
+  if (state.saving) { toast("Дождитесь завершения текущей операции.", "warning"); return; }
+  state.navigationId += 1;
+  state.editorOpen = true;
   state.task = task;
   state.analysis = null;
   state.answers = {};
@@ -82,7 +85,11 @@ function openEditor({ task = null } = {}) {
   } else showStage(1);
   $("#editor").scrollIntoView({ behavior: "smooth", block: "start" });
 }
-function closeEditor() { $("#editor").hidden = true; }
+function closeEditor() {
+  state.navigationId += 1;
+  state.editorOpen = false;
+  $("#editor").hidden = true;
+}
 function fieldsFromTask(task) {
   return Object.fromEntries(FIELD_KEYS.map((key) => [key, safeString(task?.[key] ?? task?.fields?.[key])]));
 }
@@ -202,9 +209,11 @@ async function applyAnswers() {
   renderCard(null);
   showStage(3);
 }
-function renderCard(task) {
-  if (task) state.fields = fieldsFromTask(task);
-  const confirmed = new Set(task?.confirmedFields || []);
+function renderCard(task, draftFields = null, draftConfirmations = []) {
+  if (draftFields) state.fields = { ...draftFields };
+  else if (task) state.fields = fieldsFromTask(task);
+  const confirmed = new Set((task?.confirmedFields || []).filter((key) => state.fields[key] === safeString(task[key])));
+  draftConfirmations.forEach((key) => confirmed.add(key));
   const root = $("#fields-grid");
   root.innerHTML = FIELDS.map(([key, label, hint]) => {
     const large = ["context", "need", "data", "constraints", "expectedResult", "successCriteria", "interactionFormat", "feedbackProcess"].includes(key);
@@ -276,6 +285,7 @@ async function persistDraft({ confirm = false } = {}) {
   if (state.saving) return;
   const rawDescription = $("#description").value.trim();
   const editedFields = currentFieldValues();
+  const requestedConfirmations = confirm ? selectedConfirmations() : [];
   const descriptionNotPersisted = Boolean(state.task && state.task.rawDescription !== rawDescription);
   if (!rawDescription) { setStatus("Описание нужно сохранить вместе с карточкой.", "warning"); showStage(1); return; }
   if (Object.values(editedFields).some((value) => value.length > 4000)) { setStatus("Одно из полей превышает лимит 4 000 символов.", "warning"); return; }
@@ -297,20 +307,24 @@ async function persistDraft({ confirm = false } = {}) {
     }
     let confirmedCount = 0;
     if (confirm) {
-      const selected = selectedConfirmations();
+      const currentFields = currentFieldValues();
+      const selectedNow = new Set(selectedConfirmations());
+      const selected = requestedConfirmations.filter((key) => selectedNow.has(key) && currentFields[key] === safeString(state.task[key]));
       confirmedCount = selected.length;
       if (selected.length) state.task = await api.confirmTask(state.task.id, state.task.revision, selected);
     }
     const preserveInputs = currentFieldValues();
-    state.fields = { ...fieldsFromTask(state.task), ...preserveInputs };
-    renderCard(state.task);
+    const preserveConfirmations = selectedConfirmations();
+    const hasUnsavedChanges = FIELD_KEYS.some((key) => preserveInputs[key] !== safeString(state.task[key]));
+    renderCard(state.task, preserveInputs, preserveConfirmations);
     if (state.task.publicationStatus !== "published") $("#publish").disabled = false;
-    const successMessage = confirm
+    let successMessage = confirm
       ? confirmedCount ? "Черновик сохранён, выбранные поля подтверждены, оценка обновлена." : "Черновик сохранён. Отметьте поля, за которые готовы отвечать, и подтвердите их для пересчёта рейтинга."
       : "Черновик надёжно сохранён на сервере.";
+    if (hasUnsavedChanges) successMessage += " Новые изменения остались в форме — сохраните их отдельно.";
     setStatus(descriptionNotPersisted
       ? `${successMessage} Изменение исходного описания не поддерживается сервером; сохранены поля карточки, на сервере осталось прежнее описание.`
-      : successMessage, descriptionNotPersisted ? "warning" : "success");
+      : successMessage, descriptionNotPersisted || hasUnsavedChanges ? "warning" : "success");
     toast(confirm ? "Карточка сохранена и пересчитана" : "Черновик сохранён");
     await refreshTasks();
   } catch (error) {
@@ -355,7 +369,7 @@ function renderPublished(task) {
   $("#stage-published").innerHTML = `<div class="success-mark">✓</div><h3>Задача опубликована</h3><p>Команды увидят подтверждённые сведения и смогут подготовить предложения. Рейтинг этой версии — ${score}/100.</p>
     <div class="publication-preview"><strong>${escapeHTML(title)}</strong><p>Версия ${escapeHTML(version?.version ?? "—")} · опубликовано ${escapeHTML(formatDate(version?.publishedAt))} · статус: опубликована</p></div>
     <button id="back-to-card" class="button button-secondary">Вернуться к карточке</button> <button id="new-after-publish" class="button button-primary">Создать ещё одну задачу <span>→</span></button>`;
-  $("#back-to-card").addEventListener("click", () => { renderCard(state.task); showStage(3); });
+  $("#back-to-card").addEventListener("click", () => { renderCard(state.task, currentFieldValues(), selectedConfirmations()); showStage(3); });
   $("#new-after-publish").addEventListener("click", () => openEditor());
 }
 async function refreshTasks() {
@@ -396,8 +410,11 @@ function renderTaskList() {
   $$('[data-review-task]').forEach((button) => button.addEventListener("click", () => openProposalReviewById(button.dataset.reviewTask)));
 }
 async function openExistingTask(id) {
-  try { openEditor({ task: await api.getTask(id) }); }
-  catch (error) { toast(friendlyError(error), "error"); }
+  const navigationId = ++state.navigationId;
+  try {
+    const task = await api.getTask(id);
+    if (navigationId === state.navigationId) openEditor({ task });
+  } catch (error) { if (navigationId === state.navigationId) toast(friendlyError(error), "error"); }
 }
 function adaptMarketplaceTask(task) {
   return {
@@ -407,9 +424,10 @@ function adaptMarketplaceTask(task) {
   };
 }
 function navigate(view) {
+  state.navigationId += 1;
   state.view = view;
   const business = view === "business";
-  $$(".business-view-block").forEach((element) => { element.hidden = !business; });
+  $$(".business-view-block").forEach((element) => { element.hidden = !business || (element.id === "editor" && !state.editorOpen); });
   $("#marketplace-view").hidden = business;
   $("#milestone-start").hidden = view !== "review";
   $$("[data-view]").forEach((link) => link.classList.toggle("active", link.dataset.view === view || (view === "proposal" && link.dataset.view === "catalog") || (view === "review" && link.dataset.view === "business") || (view === "milestone" && link.dataset.view === "business")));
@@ -424,6 +442,9 @@ function showMarketplaceScreen(view, screen, task = null) {
   $("#marketplace-context").textContent = state.role === "team" ? "РАБОТА ДЛЯ КОМАНД" : "РАБОТА С КОМАНДАМИ";
   $("#marketplace-view").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+function isActiveMarketplaceScreen(view, screen) {
+  return state.view === view && $("#marketplace-content").firstElementChild === screen;
+}
 function openCatalog() {
   state.role = "team";
   syncRoleControls();
@@ -432,25 +453,36 @@ function openCatalog() {
 }
 function openProposal(task) {
   state.activeTask = adaptMarketplaceTask(task);
-  const screen = createProposalScreen(state.activeTask, { onSubmitted: () => { toast("Предложение отправлено бизнесу"); openCatalog(); } });
+  const screen = createProposalScreen(state.activeTask, { onSubmitted: () => {
+    if (!isActiveMarketplaceScreen("proposal", screen)) return;
+    toast("Предложение отправлено бизнесу");
+    openCatalog();
+  } });
   showMarketplaceScreen("proposal", screen, task);
 }
 function openTeams() {
   state.role = "team";
   syncRoleControls();
-  const screen = createTeamsScreen({ onCreated: (team) => toast(`Профиль «${team.name}» создан`) });
+  const screen = createTeamsScreen({ onCreated: (team) => {
+    if (isActiveMarketplaceScreen("teams", screen)) toast(`Профиль «${team.name}» создан`);
+  } });
   showMarketplaceScreen("teams", screen);
 }
 async function openProposalReviewById(id) {
-  try { showProposalReview(await api.getTask(id)); }
-  catch (error) { toast(friendlyError(error), "error"); }
+  const navigationId = ++state.navigationId;
+  try {
+    const task = await api.getTask(id);
+    if (navigationId === state.navigationId) showProposalReview(task);
+  } catch (error) { if (navigationId === state.navigationId) toast(friendlyError(error), "error"); }
 }
 function showProposalReview(task) {
   state.role = "business";
   syncRoleControls();
   const normalized = adaptMarketplaceTask(task);
   state.activeTask = normalized;
-  const screen = createProposalReviewScreen(normalized, { onChanged: () => showProposalReview(normalized) });
+  const screen = createProposalReviewScreen(normalized, { onChanged: () => {
+    if (isActiveMarketplaceScreen("review", screen)) loadSelectedProposalTeams(state.activeTask);
+  } });
   showMarketplaceScreen("review", screen, normalized);
   loadSelectedProposalTeams(normalized);
 }
@@ -487,8 +519,8 @@ function showMilestone() {
   if (!teamId) { toast("Сначала выберите команду на экране откликов.", "warning"); return; }
   const task = { ...adaptMarketplaceTask(state.activeTask), selectedTeamId: teamId };
   const screen = createMilestoneScreen(task, {
-    onCreated: () => toast("Этап записан. Подтвердите его после проверки результата."),
-    onConfirmed: () => toast("Этап подтверждён: начислено 10 баллов команде"),
+    onCreated: () => { if (isActiveMarketplaceScreen("milestone", screen)) toast("Этап записан. Подтвердите его после проверки результата."); },
+    onConfirmed: () => { if (isActiveMarketplaceScreen("milestone", screen)) toast("Этап подтверждён: начислено 10 баллов команде"); },
   });
   const teamSelect = screen.querySelector('select[name="teamId"]');
   if (teamSelect) {

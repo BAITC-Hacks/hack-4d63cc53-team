@@ -86,19 +86,24 @@ export function createCatalogScreen({ onOpenTask } = {}) {
 }
 export function createTeamsScreen({ onCreated } = {}) {
   const root = screen("Команды", `<form><label>Название<input name="name" minlength="2" maxlength="120" required></label><label>Интересы (через запятую)<input name="interests" required></label><label>Навыки (через запятую)<input name="skills" required></label><label>Технологии (через запятую)<input name="technologies"></label><button>Создать профиль</button></form>`);
+  let sequence = 0;
   async function load() {
-    const teams = await request("/teams");
-    root.querySelector("[data-list]").replaceChildren(...teams.map((team) => {
-      const card = element('<article class="marketplace-card"></article>');
-      text(card, "h3", team.name); profile(card, team); return card;
-    }));
+    const current = ++sequence;
+    try {
+      const teams = await request("/teams");
+      if (current !== sequence) return;
+      root.querySelector("[data-list]").replaceChildren(...teams.map((team) => {
+        const card = element('<article class="marketplace-card"></article>');
+        text(card, "h3", team.name); profile(card, team); return card;
+      }));
+    } catch (error) { if (current === sequence) status(root, error.message); }
   }
   submit(root, async (values, form) => {
     for (const key of ["interests", "skills", "technologies"]) values[key] = values[key].split(",").map((item) => item.trim()).filter(Boolean);
     const team = await request("/teams", { method: "POST", body: values });
     form.reset(); status(root, `Профиль «${team.name}» создан.`); await onCreated?.(team); await load();
   });
-  load().catch((error) => status(root, error.message)); return root;
+  load(); return root;
 }
 export function createProposalScreen(task, { onSubmitted, teamId } = {}) {
   const root = screen("Отклик на задачу", `<form><label>Команда<select name="teamId" required></select></label><label>Идея<textarea name="idea" minlength="10" maxlength="4000" required></textarea></label><label>План<textarea name="plan" minlength="10" maxlength="4000" required></textarea></label><label>Срок<input name="deadline" minlength="2" maxlength="100" required></label><label>Прототип (http или https, необязательно)<input name="prototypeUrl" type="url" pattern="https?://.+"></label><button>Отправить предложение</button></form>`);

@@ -7,6 +7,7 @@ services:
       DATABASE_PATH: /app/backend/runtime/app.sqlite3
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      AI_MODE: ${AI_MODE:-auto}
     volumes:
       - app_runtime:/app/backend/runtime
     healthcheck:
