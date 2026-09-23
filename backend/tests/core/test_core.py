@@ -9,14 +9,18 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
-# app.py exposes a module-level app; point that import-time instance at a temp DB.
+# Isolate app.py's module-level app import from the developer's environment.
 _IMPORT_DB_DIR = tempfile.TemporaryDirectory(prefix="hackalem-core-import-")
-os.environ["DATABASE_PATH"] = str(Path(_IMPORT_DB_DIR.name) / "import.sqlite3")
+_IMPORT_DB_PATH = str(Path(_IMPORT_DB_DIR.name) / "import.sqlite3")
+with patch.dict(os.environ, {"DATABASE_PATH": _IMPORT_DB_PATH, "OPENAI_API_KEY": ""}), patch("dotenv.load_dotenv"):
+    from backend import ai  # noqa: E402
+    from backend.app import create_app  # noqa: E402
+    from backend.schemas import EDITABLE_FIELDS  # noqa: E402
+    from backend.scoring import calculate_score, readiness_for  # noqa: E402
 
-from backend import ai  # noqa: E402
-from backend.app import create_app  # noqa: E402
-from backend.schemas import EDITABLE_FIELDS  # noqa: E402
-from backend.scoring import calculate_score, readiness_for  # noqa: E402
+
+def tearDownModule():
+    _IMPORT_DB_DIR.cleanup()
 
 
 def asgi_request(app, method="GET", path="/", body=None, headers=None):
@@ -41,7 +45,9 @@ def asgi_request(app, method="GET", path="/", body=None, headers=None):
     asyncio.run(app(scope, receive, send))
     start = next(item for item in sent if item["type"] == "http.response.start")
     payload = b"".join(item.get("body", b"") for item in sent if item["type"] == "http.response.body")
-    return start["status"], dict(start.get("headers", [])), json.loads(payload) if payload else None
+    response_headers = dict(start.get("headers", []))
+    decoded = json.loads(payload) if payload and response_headers.get(b"content-type", b"").startswith(b"application/json") else payload.decode("utf-8") if payload else None
+    return start["status"], response_headers, decoded
 
 
 class CoreTestCase(unittest.TestCase):
@@ -204,9 +210,9 @@ class AnalyzeTests(CoreTestCase):
 
     def test_valid_completed_ai_response_and_strict_private_payload(self):
         response = self.valid_ai_response({"title": "Reviewed"})
-        with patch.object(ai, "OPENAI_API_KEY", "dummy-test-key"), patch.object(ai, "OPENAI_MODEL", "test-model"):
+        with patch.object(ai, "OPENAI_API_KEY", None):
             _, _, result = self.request("POST", "/api/analyze", {"description": "Describe", "answers": {"need": "Existing answer"}})
-        self.assertEqual(result["mode"], "fallback", "the HTTP route uses the real adapter, so unset-key behavior must stay offline")
+        self.assertEqual(result["mode"], "fallback", "the HTTP route must use offline fallback when no key is configured")
 
         captured = []
         def transport(payload):
@@ -289,4 +295,3 @@ class AnalyzeTests(CoreTestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

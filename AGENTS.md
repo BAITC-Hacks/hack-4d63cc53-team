@@ -56,3 +56,4 @@ For a full feature workflow, wait for each step to finish and pass its result to
 - From the repository root, verified server command: `python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000`. The smoke check used a temporary database and disabled the OpenAI key.
 - Verified HTTP surfaces: /api/health, /openapi.json, /docs and /api/analyze in explicit fallback mode.
 - OpenAI runtime configuration: local .env / OPENAI_API_KEY and OPENAI_MODEL. Never require a real API call for automated core tests.
+- Verified core tests: `python -m unittest discover -s backend/tests/core -p 'test_*.py' -v` (15 passed; temporary databases and mocked AI).
