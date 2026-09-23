@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from urllib.request import Request, urlopen
 
-from .config import OPENAI_API_KEY, OPENAI_MODEL
+from .config import AI_MODE, OPENAI_API_KEY, OPENAI_MODEL
 from .schemas import EDITABLE_FIELDS, blank_fields, validate_field_values
 
 FIELD_LABELS = {
@@ -19,6 +19,8 @@ EXTRA_QUESTIONS = (
 )
 
 def analyze(description: str, answers: dict[str, str], transport=None) -> dict:
+    if AI_MODE == "fallback":
+        return fallback(description, answers, "AI_MODE=fallback: резервный режим включён настройкой")
     if not OPENAI_API_KEY:
         return fallback(description, answers, "OPENAI_API_KEY не настроен")
     try:
