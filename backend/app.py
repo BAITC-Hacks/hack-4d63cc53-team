@@ -4,10 +4,13 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .ai import analyze
 from .config import CORS_ORIGINS, DATABASE_PATH
 from .db import TaskRepository
+from .marketplace.repository import MarketplaceRepository
+from .marketplace.router import router as marketplace_router
 from .schemas import AnalyzeRequest, ConfirmTaskRequest, CreateTaskRequest, PatchTaskRequest, PublishTaskRequest
 from .tasks import TaskService
 
@@ -16,6 +19,7 @@ def create_app(database_path: Path | None = None, service: TaskService | None = 
     application = FastAPI(title="HackAlem Task API")
     application.state.task_repository = task_service.repository
     application.state.task_service = task_service
+    application.state.marketplace_repository = MarketplaceRepository(task_service.repository.path)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=CORS_ORIGINS,
@@ -55,6 +59,10 @@ def create_app(database_path: Path | None = None, service: TaskService | None = 
     @application.post("/api/analyze")
     def analyze_task(body: AnalyzeRequest):
         return analyze(body.description, body.answers)
+
+    application.include_router(marketplace_router)
+    frontend_path = Path(__file__).resolve().parent.parent / "frontend"
+    application.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
 
     return application
 
