@@ -66,7 +66,13 @@ function fill(form, values) {
   }
 }
 globalThis.document = { createElement: (tag) => new Node(tag) };
-globalThis.window = { API_BASE: "http://test.invalid/api", location: { hostname: "test.invalid", protocol: "http:" } };
+// The shared HTTP client reports reachability through a browser event.
+// Keep this small double compatible with that browser contract as well.
+globalThis.window = {
+  API_BASE: "http://test.invalid/api",
+  location: { hostname: "test.invalid", protocol: "http:" },
+  dispatchEvent() { return true; },
+};
 globalThis.FormData = class {
   constructor(form) { this.entries = controls(form).map((node) => [node.attributes.name, node.value]); }
   [Symbol.iterator]() { return this.entries[Symbol.iterator](); }
