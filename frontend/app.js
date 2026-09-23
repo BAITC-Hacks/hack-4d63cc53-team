@@ -1,4 +1,5 @@
 import { api, ApiError, request } from "./shared/api.js";
+import { createRatingGuide } from "./business/rating-guide.js";
 import {
   createCatalogScreen,
   createMilestoneScreen,
@@ -16,6 +17,7 @@ const FIELDS = [
   ["interactionFormat", "Формат взаимодействия", "Как команда сможет общаться с вами?"], ["feedbackProcess", "Обратная связь", "Как и когда вы будете давать комментарии?"]
 ];
 const FIELD_KEYS = FIELDS.map(([key]) => key);
+const FIELD_LABELS = Object.fromEntries(FIELDS.map(([key, label]) => [key, label]));
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const state = { task: null, analysis: null, answers: {}, fields: blankFields(), saving: false, conflictTask: null, toastTimer: null, tasks: [], role: "business", view: "business", activeTask: null, selectedTeamLoadId: 0, editorOpen: false, navigationId: 0 };
@@ -262,6 +264,50 @@ function renderScore(task) {
   panel.innerHTML = `<div class="score-header"><div class="score-ring" style="--score-angle:${score * 3.6}deg"><strong>${score}</strong></div><div class="score-copy"><strong>Готовность описания · ${score}/100</strong><p>${escapeHTML(readiness)} — оценка опирается на заполненные и подтверждённые сведения</p></div></div>
     <div class="score-breakdown">${breakdown.map((row) => `<div class="score-row"><span>${escapeHTML(row.label || "Показатель")}</span><b>${Number(row.points) || 0}/${Number(row.maxPoints) || 0}</b></div>`).join("")}</div>
     ${missing.length ? `<div class="missing-list"><b>Чтобы усилить задачу:</b> ${missing.map((key) => escapeHTML(FIELDS.find(([name]) => name === key)?.[1] || key)).join(" · ")}</div>` : `<div class="missing-list">Все оцениваемые сведения подтверждены.</div>`}`;
+  renderRatingGuide();
+}
+function renderRatingGuide() {
+  const panel = $("#score-panel");
+  if (!panel || !state.task) return;
+  let root = $("#rating-guide");
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "rating-guide";
+    panel.append(root);
+  }
+  const guide = createRatingGuide({ task: state.task, fields: currentFieldValues(), confirmedFields: selectedConfirmations(), labels: FIELD_LABELS });
+  root.replaceChildren();
+  if (!guide) return;
+  const box = document.createElement("div");
+  box.className = "rating-guide rating-guide-" + guide.state;
+  const copy = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = guide.title;
+  const text = document.createElement("p");
+  text.textContent = guide.text;
+  copy.append(title, text);
+  if (guide.remaining?.length) {
+    const remaining = document.createElement("small");
+    remaining.textContent = "Группа: " + guide.remaining.join(" · ");
+    copy.append(remaining);
+  }
+  box.append(copy);
+  if (guide.action) {
+    const action = document.createElement("button");
+    action.className = "button button-secondary rating-guide-action";
+    action.textContent = guide.action;
+    action.dataset.ratingGuideAction = guide.target.type;
+    action.dataset.ratingGuideKey = guide.target.key || "";
+    box.append(action);
+  }
+  root.append(box);
+}
+function focusRatingGuideTarget(button) {
+  const type = button.dataset.ratingGuideAction;
+  const key = button.dataset.ratingGuideKey;
+  const target = type === "save" ? $("#save-confirm") : type === "confirm" ? $('[data-confirm-field="' + key + '"]') : $('[data-field="' + key + '"]');
+  target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  target?.focus({ preventScroll: true });
 }
 function currentFieldValues() {
   const result = {};
@@ -294,6 +340,7 @@ function handleConflict(error, confirmAfter = false) {
 async function persistDraft({ confirm = false } = {}) {
   if (state.saving) return;
   const rawDescription = $("#description").value.trim();
+  const previousScore = Number(state.task?.score) || 0;
   const editedFields = currentFieldValues();
   const requestedConfirmations = confirm ? selectedConfirmations() : [];
   const descriptionNotPersisted = Boolean(state.task && state.task.rawDescription !== rawDescription);
@@ -331,6 +378,7 @@ async function persistDraft({ confirm = false } = {}) {
     let successMessage = confirm
       ? confirmedCount ? "Черновик сохранён, выбранные поля подтверждены, оценка обновлена." : "Черновик сохранён. Отметьте поля, за которые готовы отвечать, и подтвердите их для пересчёта рейтинга."
       : "Черновик надёжно сохранён на сервере.";
+    if (confirm && state.task.score > previousScore) successMessage += " Рейтинг вырос с " + previousScore + " до " + state.task.score + "/100 по расчёту сервера.";
     if (hasUnsavedChanges) successMessage += " Новые изменения остались в форме — сохраните их отдельно.";
     setStatus(descriptionNotPersisted
       ? `${successMessage} Изменение исходного описания не поддерживается сервером; сохранены поля карточки, на сервере осталось прежнее описание.`
@@ -595,6 +643,8 @@ function init() {
   $("#editor").addEventListener("click", (event) => {
     const back = event.target.closest("[data-back]");
     if (back) { showStage(Number(back.dataset.back)); return; }
+    const guideAction = event.target.closest("[data-rating-guide-action]");
+    if (guideAction) { focusRatingGuideTarget(guideAction); return; }
     onConflictAction(event);
   });
   $("#editor").addEventListener("input", (event) => {
@@ -622,6 +672,8 @@ function init() {
       setStatus("Чтобы отозвать подтверждение, измените значение поля и сохраните черновик.", "warning");
     }
   });
+  $("#editor").addEventListener("input", () => renderRatingGuide());
+  $("#editor").addEventListener("change", () => renderRatingGuide());
   state.role = "business";
   syncRoleControls();
   refreshTasks();

@@ -454,6 +454,7 @@ h3 { margin-bottom: 7px; font-size: 18px; font-weight: 700; }
   .footer { flex-direction: column; gap: 6px; }
   .footer > span:last-child { text-align: left; }
 }
+<<<<<<< Updated upstream
 @media (max-width: 460px) {
   .sidebar { grid-template-columns: minmax(95px, .7fr) minmax(150px, 1fr); gap: 8px; padding-right: 12px; padding-left: 12px; }
   .brand { gap: 7px; font-size: 18px; }
@@ -499,3 +500,7 @@ h3 { margin-bottom: 7px; font-size: 18px; font-weight: 700; }
 }
 
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid #719858; outline-offset: 3px; }
+=======
+.rating-guide{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:12px;border:1px solid #dce7d2;border-radius:9px;background:#f3f8ee}.rating-guide strong{font-size:10px;color:#35593a}.rating-guide p{margin:4px 0 0;font-size:10px;line-height:1.5;color:#627060}.rating-guide small{display:block;margin-top:5px;font-size:9px;color:#7d896f}.rating-guide-action{flex:none;min-height:34px;font-size:9px;white-space:nowrap}.rating-guide-stale{background:#fff7e9;border-color:#f0dfbc}.rating-guide-stale strong{color:#835c25}.rating-guide-complete{background:#f7faf5}
+@media(max-width:760px){.rating-guide{align-items:flex-start;flex-direction:column}.rating-guide-action{width:100%}}
+>>>>>>> Stashed changes
