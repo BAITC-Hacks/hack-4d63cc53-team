@@ -124,7 +124,7 @@
 | AI | OpenAI Platform, **Responses API**, модель **`gpt-4.1-mini`** по умолчанию | Уточнение бизнес-задачи; модель меняется через `OPENAI_MODEL` |
 | HTTP к AI | Стандартные `urllib.request` и `json`, JSON Schema | Серверный запрос к OpenAI и проверка структурированного ответа; отдельный OpenAI SDK не используется |
 | Конфигурация | `python-dotenv` **1.2.3**, переменные окружения | Локальная конфигурация и ключ API |
-| Запуск | Dockerfile, Docker Compose, Windows BAT | Повторяемая сборка и запуск |
+| Запуск | Dockerfile, Docker Compose, Windows BAT, macOS/Linux SH | Повторяемая сборка и запуск |
 | Проверки | Python `unittest`, Node.js `node:test` | Core, HTTP/repository и модульные JS-регрессии |
 
 Версии рабочих Python-зависимостей зафиксированы в [backend/requirements.txt](backend/requirements.txt). Node.js нужен только для JS-тестов; React, npm-сборка и отдельный сервер frontend для MVP не требуются.
@@ -178,7 +178,7 @@ flowchart LR
 | `backend/marketplace/` | Собственные маршруты, схемы и репозиторий команд, откликов и этапов |
 | `backend/tests/core/`, `backend/tests/marketplace/` | Серверные тесты |
 | [data/marketplace-seed.json](data/marketplace-seed.json), [data/seed_demo.py](data/seed_demo.py) | Демоданные и загрузчик через сервис задач и marketplace-репозиторий |
-| [Dockerfile](Dockerfile), [compose.yaml](compose.yaml), [start.bat](start.bat) | Способы запуска |
+| [Dockerfile](Dockerfile), [compose.yaml](compose.yaml), [start.bat](start.bat), [start.sh](start.sh) | Способы запуска |
 | `backend/runtime/` | Локальная SQLite и временные файлы; исключены из Git |
 | [DEVELOPMENT_PLAN.md](DEVELOPMENT_PLAN.md), [docs/PARTICIPANT_2.md](docs/PARTICIPANT_2.md) | Разделение работ, контракты и подробный отчёт проверок |
 
@@ -193,16 +193,24 @@ git clone https://github.com/BAITC-Hacks/hack-4d63cc53-team.git
 cd hack-4d63cc53-team
 ```
 
-Все дальнейшие команды выполняются **из корня проекта**. Ниже команды для PowerShell. Выберите один способ запуска: Docker, BAT или вручную. Для Docker локальный Python не нужен; для двух остальных вариантов нужен Python 3.10+.
+Все дальнейшие команды выполняются **из корня проекта**. Выберите один способ: Docker, `start.bat` для Windows, `start.sh` для macOS/Linux или ручной запуск. Команды PowerShell и терминала macOS/Linux приведены отдельно; команды `docker compose` одинаковы для всех трёх ОС. Для Docker локальный Python не нужен; для остальных вариантов нужен Python 3.10+ и интернет при первой установке зависимостей. Node.js для запуска сайта не требуется.
 
 ### Вариант 1. Docker Compose
 
-**Нужно:** установленный и запущенный Docker Desktop с Linux-контейнерами, свободный порт 8000 и интернет при первой сборке.
+**Нужно:** установленный и запущенный Docker с Compose, свободный порт 8000 и интернет при первой сборке. На Windows/macOS можно использовать Docker Desktop с Linux-контейнерами, на Linux — Docker Engine с плагином Compose либо Docker Desktop.
 
-1. Создайте файл настроек, если его ещё нет:
+1. Создайте файл настроек, если его ещё нет.
+
+   **Windows, PowerShell:**
 
    ```powershell
    if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+   ```
+
+   **macOS/Linux, терминал:**
+
+   ```sh
+   [ -f .env ] || cp .env.example .env
    ```
 
 2. Для повторяемого демо добавьте или установите в `.env` строку `AI_MODE=fallback`. Существующий ключ сохраняется, но в этом режиме не используется. Для настоящего OpenAI см. [настройки интеграции](#данные-и-интеграции).
@@ -237,7 +245,28 @@ SQLite находится в томе `app_runtime` по пути `/app/backend/
 
 Скрипт находит установленный Python 3.10+, создаёт отсутствующую `.venv`, копирует `.env.example` только при отсутствии `.env`, устанавливает зависимости и запускает сервер. Браузер открывается после успешной проверки `/api/health`; существующий ключ не перезаписывается. При ошибке окно остаётся открытым с пояснением. Для остановки нажмите `Ctrl+C`.
 
-### Вариант 3. Python вручную
+### Вариант 3. macOS/Linux — start.sh
+
+В терминале выполните:
+
+```sh
+sh start.sh
+```
+
+[start.sh](start.sh) сам переходит в папку проекта, находит Python 3.10+ (`python3` либо `python`), создаёт `.venv` при её отсутствии и устанавливает зависимости из `backend/requirements.txt`. Готовое совместимое окружение используется повторно, существующий `.env` сохраняется; при первом запуске настройки копируются из `.env.example`. После проверки `/api/health` сервер попробует открыть браузер. Если браузер не открылся, перейдите на [http://127.0.0.1:8000/](http://127.0.0.1:8000/) вручную. Остановка — `Ctrl+C` в том же терминале.
+
+Вместо `sh start.sh` можно один раз выдать право на выполнение и затем запускать файл напрямую:
+
+```sh
+chmod +x start.sh
+./start.sh
+```
+
+Не переносите `.venv` между Windows, macOS и Linux: создавайте окружение на каждой машине отдельно. Если скрипт обнаружит несовместимую или повреждённую `.venv`, он остановится с пояснением и сохранит её. Используйте отдельный клон или вручную пересоздайте только виртуальное окружение. В Debian/Ubuntu для создания окружения может потребоваться пакет `python3-venv`.
+
+### Вариант 4. Python вручную
+
+**Windows, PowerShell:**
 
 ```powershell
 if (-not (Test-Path .venv\Scripts\python.exe)) { py -3 -m venv .venv }
@@ -246,7 +275,18 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 .\.venv\Scripts\python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 ```
 
-Откройте основной адрес вручную; остановка — `Ctrl+C`. Вместо последней команды можно выполнить `.\.venv\Scripts\python.exe -m backend.launch` для автоматического открытия браузера. Для разработки Uvicorn поддерживает `--reload`.
+**macOS/Linux, терминал:**
+
+```sh
+[ -d .venv ] || python3 -m venv .venv
+[ -f .env ] || cp .env.example .env
+.venv/bin/python -m pip install -r backend/requirements.txt
+.venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
+```
+
+Используйте `.venv`, созданную на этой ОС. Откройте основной адрес вручную; остановка — `Ctrl+C`. Для автоматического открытия браузера замените последнюю команду на `.\.venv\Scripts\python.exe -m backend.launch` в PowerShell или `.venv/bin/python -m backend.launch` на macOS/Linux. Для разработки Uvicorn поддерживает `--reload`.
+
+**Проверка `start.sh`, 23.09.2026:** скрипт запущен в Linux-контейнере с Python 3.13.15. Проверены создание чистой `.venv` и установка зависимостей, запуск из другой рабочей папки по пути с пробелами, доступность сайта и API, резервный AI без внешнего запроса, остановка через SIGINT (`Ctrl+C`), немедленный повторный запуск с сохранением `.env` и ошибочный запуск при занятом порте. Синтаксис проверен в `sh` и `bash`; три регрессионных теста TCP-порта прошли в Linux. Для повторного запуска исправлен захват порта в `backend/launch.py` на POSIX-системах. Непосредственный запуск на macOS и автоматическое открытие графического браузера в этой проверке не проверялись; контейнер работал без графической среды.
 
 ### Адреса после запуска
 
@@ -262,11 +302,15 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 
 | Симптом | Что проверить |
 |---|---|
-| Порт 8000 занят | Остановить предыдущий BAT/Uvicorn или Docker-контейнер; использовать один способ запуска |
-| Docker не соединяется с движком | Запустить Docker Desktop и дождаться готовности Linux engine |
+| Порт 8000 занят | Остановить предыдущий запуск через BAT/SH/Uvicorn или Docker-контейнер; использовать один способ запуска |
+| Docker не соединяется с движком | Запустить Docker Desktop либо службу Docker Engine на Linux и дождаться её готовности |
+| `Python 3.10 or newer was not found` | Установить Python 3.10+; на macOS/Linux проверить `python3 --version` |
+| Не удалось создать `.venv` | Проверить возможность записи в папку и наличие модуля `venv`; в Debian/Ubuntu может понадобиться `python3-venv` |
+| `.venv/bin/python is unavailable` | Использовать окружение для текущей ОС; `start.sh` не перезаписывает Windows или повреждённую `.venv` |
+| Браузер не открылся автоматически | Открыть `http://127.0.0.1:8000/` вручную после сообщения о готовности сервера |
 | Вместо OpenAI показан резервный режим | Проверить `AI_MODE`, наличие ключа в `.env` именно этого сервера и причину в интерфейсе; после изменения настроек перезапустить сервер |
 | Нет связи с сервером | Открывать страницу через `http://127.0.0.1:8000/`, а не двойным щелчком по HTML |
-| После смены настроек ничего не изменилось | Перезапустить BAT/Uvicorn; для Compose повторить `docker compose up -d` |
+| После смены настроек ничего не изменилось | Перезапустить BAT/SH/Uvicorn; для Compose повторить `docker compose up -d` |
 
 ## Повторяемая проверка для жюри
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import socket
 import threading
 import time
@@ -42,12 +43,14 @@ def open_browser_when_ready(stopped: threading.Event) -> None:
 def reserve_local_port() -> socket.socket | None:
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
+        if os.name != "nt":
+            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind(("127.0.0.1", 8000))
         server_socket.listen()
     except OSError as error:
         server_socket.close()
         print("ERROR: Cannot bind to 127.0.0.1:8000. The port may already be in use.")
-        print("Stop the process that owns port 8000, then run start.bat again.")
+        print("Stop the process that owns port 8000, then run the launcher again.")
         print(f"Details: {error}")
         return None
     return server_socket
