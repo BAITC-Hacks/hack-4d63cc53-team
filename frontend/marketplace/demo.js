@@ -29,7 +29,7 @@ function render(next = page) {
   else if (!selected) { message.textContent = "Сначала опубликуйте задачу на основном экране или загрузите демоданные."; view = document.createElement("p"); }
   else if (page === "proposal") view = createProposalScreen(selected, { teamId: team.value });
   else if (page === "review") view = createProposalReviewScreen(selected);
-  else view = createMilestoneScreen(selected, { onConfirmed: () => refresh().catch((error) => { message.textContent = error.message; }) });
+  else view = createMilestoneScreen(selected, { teamId: team.value, onConfirmed: () => refresh().catch((error) => { message.textContent = error.message; }) });
   document.querySelector("#screen").replaceChildren(view);
 }
 document.querySelectorAll("[data-page]").forEach((button) => button.addEventListener("click", () => render(button.dataset.page)));

@@ -74,13 +74,15 @@ globalThis.FormData = class {
 globalThis.Option = class extends Node {
   constructor(label, value) { super("option"); this.textContent = label; this.value = value; }
 };
-const { createCatalogScreen, createTeamsScreen, createProposalReviewScreen, createMilestoneScreen } = await import("./marketplace.js");
+const { createCatalogScreen, createTeamsScreen, createProposalScreen, createProposalReviewScreen, createMilestoneScreen } = await import("./marketplace.js");
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const list = (screen) => screen.querySelector("[data-list]");
 const status = (screen) => screen.querySelector("[data-status]").textContent;
 const button = (root, label) => root.querySelectorAll("button").find((node) => node.textContent === label);
 const task = { taskId: "task-1", fields: { title: "Demo" } };
 const team = { id: "team-1", name: "Team", interests: ["UX"], skills: ["JS"], technologies: [], progressPoints: 0 };
+const secondTeam = { ...team, id: "team-2", name: "Second team" };
+const selectedProposals = [team, secondTeam].map((item) => ({ teamId: item.id, team: item, status: "selected" }));
 function mockApi(handler) {
   const calls = [];
   globalThis.fetch = async (url, options) => {
@@ -90,6 +92,26 @@ function mockApi(handler) {
     return { ok: !result?.error, status: result?.error ? 409 : 200, text: async () => JSON.stringify(result?.error ? { detail: result.error } : result) };
   };
   return calls;
+}
+
+function mockMilestones({ proposals = selectedProposals, milestones = [], awarded = true } = {}) {
+  return mockApi(({ url, method, body }) => {
+    if (url.pathname.endsWith("/proposals")) return proposals;
+    if (url.pathname.endsWith("/confirm")) {
+      const milestone = milestones.find((item) => url.pathname === `/api/milestones/${item.id}/confirm`);
+      assert.ok(milestone, "confirmation must target an existing milestone");
+      Object.assign(milestone, { confirmedAt: "2026-09-23", pointsAwarded: 10 });
+      return { awarded, milestone };
+    }
+    if (method === "POST") {
+      const selected = proposals.find((item) => item.teamId === body.teamId && item.status === "selected");
+      assert.ok(selected, "milestone must target a selected team");
+      const milestone = { ...body, id: `stage-${milestones.length + 1}`, team: selected.team, confirmedAt: null };
+      milestones.push(milestone);
+      return milestone;
+    }
+    return milestones;
+  });
 }
 
 test("team creation sends an object body, resets after await and invokes callback", async () => {
@@ -127,6 +149,30 @@ test("all readiness levels omit empty filter and low-score tasks stay visible", 
   assert.equal(calls.at(-1).url.searchParams.has("readiness"), false);
   assert.equal(calls.at(-1).url.searchParams.has("topic"), false);
   assert.match(list(root).textContent, /0\/100/);
+});
+
+test("proposal preselects the requested team and submits its task and fields before callback", async () => {
+  let release;
+  const pending = new Promise((resolve) => { release = resolve; });
+  let submitted;
+  const calls = mockApi(({ method }) => method === "POST" ? pending : [team, secondTeam]);
+  const root = createProposalScreen(task, { teamId: secondTeam.id, onSubmitted: (value) => { submitted = value; } });
+  await tick();
+  const form = root.querySelector("form");
+  assert.equal(form.querySelector("select").value, secondTeam.id);
+  const fields = { idea: "A useful prototype", plan: "Build and validate", deadline: "2 weeks", prototypeUrl: "https://example.test/demo" };
+  fill(form, fields);
+  const submitting = form.dispatch("submit");
+  const post = calls.find((call) => call.method === "POST");
+  assert.equal(post.url.pathname, "/api/proposals");
+  assert.deepEqual(post.body, { ...fields, taskId: task.taskId, teamId: secondTeam.id });
+  assert.equal(submitted, undefined);
+  const proposal = { ...post.body, id: "proposal-2", status: "pending" };
+  release(proposal);
+  await submitting;
+  assert.deepEqual(submitted, proposal);
+  assert.equal(form.resetCount, 1);
+  assert.match(status(root), /Предложение отправлено/);
 });
 
 test("manual choice reloads status; failed rejection preserves selection and allows retry", async () => {
@@ -193,4 +239,86 @@ test("persisted milestones reload, confirmation cannot repeat and a new stage ca
   assert.equal(list(reloaded).children.length, 2);
   assert.match(list(reloaded).textContent, /Second stage/);
   assert.equal(reloaded.querySelectorAll("button").filter((node) => node.textContent === "Подтвердить и начислить +10").length, 1);
+});
+
+test("milestones preselect the requested second selected team", async () => {
+  mockMilestones();
+  const root = createMilestoneScreen(task, { teamId: secondTeam.id });
+  await tick();
+  const select = root.querySelector("select");
+  assert.deepEqual(select.children.map((option) => option.value), [team.id, secondTeam.id]);
+  assert.equal(select.value, secondTeam.id);
+});
+
+test("milestone creation preserves the submitted second team after form reset", async () => {
+  let created;
+  const calls = mockMilestones();
+  const root = createMilestoneScreen(task, { onCreated: (value) => { created = value; } });
+  await tick();
+  const form = root.querySelector("form");
+  fill(form, { teamId: secondTeam.id, description: "Second team stage", evidence: "Working demo" });
+  await form.dispatch("submit");
+  assert.deepEqual(calls.find((call) => call.method === "POST").body, {
+    taskId: task.taskId, teamId: secondTeam.id, description: "Second team stage", evidence: "Working demo",
+  });
+  assert.equal(form.resetCount, 1);
+  assert.equal(form.querySelector("select").value, secondTeam.id);
+  assert.equal(created.teamId, secondTeam.id);
+  assert.match(list(root).textContent, /Second team stage/);
+});
+
+test("manual milestone team choice survives confirmation and creation without reverting to the incoming team", async () => {
+  const milestones = [{ id: "stage-1", teamId: team.id, team, description: "Existing stage", evidence: "Demo", confirmedAt: null }];
+  const calls = mockMilestones({ milestones });
+  const root = createMilestoneScreen(task, { teamId: secondTeam.id });
+  await tick();
+  const form = root.querySelector("form");
+  fill(form, { teamId: team.id });
+  await form.querySelector("select").dispatch("change");
+  await button(root, "Подтвердить и начислить +10").dispatch("click");
+  assert.equal(form.querySelector("select").value, team.id);
+  fill(form, { description: "Manually selected team stage", evidence: "New demo" });
+  await form.dispatch("submit");
+  assert.equal(calls.find((call) => call.url.pathname === "/api/milestones" && call.method === "POST").body.teamId, team.id);
+  assert.equal(form.querySelector("select").value, team.id);
+});
+
+test("unavailable incoming milestone teams fall back to an eligible selected team", async () => {
+  const rejectedTeam = { ...team, id: "rejected-team", name: "Rejected team" };
+  for (const teamId of [rejectedTeam.id, "missing-team"]) {
+    mockMilestones({ proposals: [...selectedProposals, { teamId: rejectedTeam.id, team: rejectedTeam, status: "rejected" }] });
+    const root = createMilestoneScreen(task, { teamId });
+    await tick();
+    const select = root.querySelector("select");
+    assert.equal(select.value, team.id);
+    assert.deepEqual(select.children.map((option) => option.value), [team.id, secondTeam.id]);
+  }
+});
+
+test("milestones without selected proposals leave the team empty instead of using a rejected team", async () => {
+  const calls = mockMilestones({ proposals: [
+    { teamId: team.id, team, status: "rejected" },
+    { teamId: secondTeam.id, team: secondTeam, status: "pending" },
+  ] });
+  const root = createMilestoneScreen(task, { teamId: team.id });
+  await tick();
+  const select = root.querySelector("select");
+  assert.equal(select.value, "");
+  assert.equal(select.children.length, 0);
+  assert.match(status(root), /Сначала выберите команду/);
+  assert.equal(calls.filter((call) => call.method === "POST").length, 0);
+});
+
+test("an already confirmed milestone reports no new points when awarded is false", async () => {
+  const milestones = [{ id: "stage-1", teamId: team.id, team, description: "Existing stage", evidence: "Demo", confirmedAt: null }];
+  let confirmed;
+  const calls = mockMilestones({ milestones, awarded: false });
+  const root = createMilestoneScreen(task, { onConfirmed: (value) => { confirmed = value; } });
+  await tick();
+  await button(root, "Подтвердить и начислить +10").dispatch("click");
+  assert.equal(calls.filter((call) => call.url.pathname.endsWith("/confirm")).length, 1);
+  assert.match(status(root), /уже подтверждён.*Повторных баллов нет/);
+  assert.doesNotMatch(status(root), /\+10/);
+  assert.deepEqual(confirmed, milestones[0]);
+  assert.equal(button(root, "Подтвердить и начислить +10"), undefined);
 });

@@ -142,10 +142,14 @@ class TaskApiTests(CoreTestCase):
         _, _, task = self.request("POST", "/api/tasks", {"rawDescription": "Before"})
         task_id = task["id"]
         self.request("PATCH", f"/api/tasks/{task_id}", {"expectedRevision": 1, "fields": {"title": "Applied"}})
+        before_stale_attempt = self.request("GET", f"/api/tasks/{task_id}")[2]
         status, _, conflict = self.request("PATCH", f"/api/tasks/{task_id}", {"expectedRevision": 1, "fields": {"title": "Must not apply"}})
         self.assertEqual(status, 409)
-        self.assertEqual(conflict["detail"]["task"]["revision"], 2)
-        self.assertEqual(self.request("GET", f"/api/tasks/{task_id}")[2]["title"], "Applied")
+        self.assertEqual(conflict["detail"]["task"]["revision"], before_stale_attempt["revision"])
+        after_stale_attempt = self.request("GET", f"/api/tasks/{task_id}")[2]
+        self.assertEqual(after_stale_attempt["title"], before_stale_attempt["title"])
+        self.assertEqual(after_stale_attempt["revision"], before_stale_attempt["revision"])
+        self.assertEqual(after_stale_attempt["updatedAt"], before_stale_attempt["updatedAt"])
         self.assertEqual(self.request("GET", "/api/tasks/not-a-task")[0], 404)
         self.assertEqual(self.request("PATCH", "/api/tasks/not-a-task", {"expectedRevision": 1, "fields": {"title": "x"}})[0], 404)
 

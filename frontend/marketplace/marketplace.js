@@ -151,13 +151,13 @@ export function createProposalReviewScreen(task, { onChanged } = {}) {
   }
   load().catch((error) => status(root, error.message)); return root;
 }
-export function createMilestoneScreen(task, { onCreated, onConfirmed } = {}) {
+export function createMilestoneScreen(task, { teamId, onCreated, onConfirmed } = {}) {
   const root = screen("Этапы и подтверждение", `<form><label>Выбранная команда<select name="teamId" required></select></label><label>Что сделано<textarea name="description" minlength="5" maxlength="4000" required></textarea></label><label>Ссылка или описание результата<input name="evidence" minlength="3" maxlength="2000" required></label><button>Зафиксировать этап</button></form>`);
   const path = `/tasks/${encodeURIComponent(task.taskId)}`;
-  async function load() {
+  async function load(preferredTeamId) {
     const [proposals, milestones] = await Promise.all([request(`${path}/proposals`), request(`${path}/milestones`)]);
     const selected = new Map(proposals.filter((item) => item.status === "selected").map((item) => [item.teamId, item.team.name]));
-    const select = root.querySelector("select"); const previous = select.value;
+    const select = root.querySelector("select"); const previous = preferredTeamId || select.value || teamId;
     select.replaceChildren(...Array.from(selected, ([id, name]) => new Option(name, id)));
     if (selected.has(previous)) select.value = previous;
     if (!selected.size) status(root, "Сначала выберите команду в откликах. Сохранённые этапы показаны ниже.");
@@ -181,7 +181,7 @@ export function createMilestoneScreen(task, { onCreated, onConfirmed } = {}) {
   }
   submit(root, async (values, form) => {
     const milestone = await request("/milestones", { method: "POST", body: { ...values, taskId: task.taskId } });
-    form.reset(); await load(); status(root, "Этап сохранён. Для начисления баллов подтвердите результат."); onCreated?.(milestone);
+    form.reset(); await load(values.teamId); status(root, "Этап сохранён. Для начисления баллов подтвердите результат."); onCreated?.(milestone);
   });
   load().catch((error) => status(root, error.message)); return root;
 }

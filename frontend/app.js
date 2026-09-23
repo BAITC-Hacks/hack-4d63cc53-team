@@ -518,19 +518,10 @@ function showMilestone() {
   if (!teamId) { toast("Сначала выберите команду на экране откликов.", "warning"); return; }
   const task = { ...adaptMarketplaceTask(state.activeTask), selectedTeamId: teamId };
   const screen = createMilestoneScreen(task, {
+    teamId,
     onCreated: () => { if (isActiveMarketplaceScreen("milestone", screen)) toast("Этап записан. Подтвердите его после проверки результата."); },
     onConfirmed: () => { if (isActiveMarketplaceScreen("milestone", screen)) toast("Этап подтверждён"); },
   });
-  const teamSelect = screen.querySelector('select[name="teamId"]');
-  if (teamSelect) {
-    const observer = new MutationObserver(() => {
-      if ([...teamSelect.options].some((option) => option.value === task.selectedTeamId)) {
-        teamSelect.value = task.selectedTeamId;
-        observer.disconnect();
-      }
-    });
-    observer.observe(teamSelect, { childList: true });
-  }
   showMarketplaceScreen("milestone", screen, task);
 }
 function syncRoleControls() {
