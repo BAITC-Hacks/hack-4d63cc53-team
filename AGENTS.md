@@ -48,3 +48,11 @@ For a full feature workflow, wait for each step to finish and pass its result to
 - Detailed ownership and integration contracts are authoritative in DEVELOPMENT_PLAN.md section 4; inspect nested AGENTS.md for each assigned directory.
 - Keep app.py and task schema changes with participant 2, and frontend shell/shared-client changes with participant 1. Request integration changes from the relevant owner.
 - Separate clones or worktrees plus participant branches isolate parallel working copies. Directories and instructions alone do not enforce write isolation.
+
+## Implemented stack and verified commands
+
+- Backend core: backend/ (Python, FastAPI, Pydantic, SQLite, Uvicorn). Runtime dependencies are pinned in backend/requirements.txt.
+- Frontend location: frontend/ (HTML/CSS/JavaScript ES modules); the participant directories exist, while their screens are still to be implemented by participants 1 and 3.
+- From the repository root, verified server command: `python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000`. The smoke check used a temporary database and disabled the OpenAI key.
+- Verified HTTP surfaces: /api/health, /openapi.json, /docs and /api/analyze in explicit fallback mode.
+- OpenAI runtime configuration: local .env / OPENAI_API_KEY and OPENAI_MODEL. Never require a real API call for automated core tests.
