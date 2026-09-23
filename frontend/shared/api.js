@@ -12,19 +12,28 @@ export class ApiError extends Error {
   }
 }
 
+function emitConnectionStatus(online) {
+  window.dispatchEvent(new CustomEvent("api-connection", { detail: { online } }));
+}
+
 export async function request(path, options = {}) {
   let response;
+  let raw;
+  const body = options.body === undefined ? undefined : JSON.stringify(options.body);
   try {
     response = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers: { "Content-Type": "application/json", ...options.headers },
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body,
     });
+    raw = await response.text();
   } catch (error) {
+    emitConnectionStatus(false);
     throw new ApiError("Не удалось связаться с сервером. Проверьте подключение и повторите попытку.", 0, { cause: error });
   }
 
-  const raw = await response.text();
+  // Any HTTP response proves reachability; validation and business errors are not offline.
+  emitConnectionStatus(true);
   let payload = null;
   if (raw) {
     try { payload = JSON.parse(raw); }

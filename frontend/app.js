@@ -51,6 +51,13 @@ function friendlyError(error) {
   }
   return "Что-то пошло не так. Введённый текст сохранён в форме — попробуйте ещё раз.";
 }
+function setServerConnection(online) {
+  const connection = $("#server-connection");
+  if (!connection) return;
+  connection.className = online ? "connection" : "connection offline";
+  const indicator = document.createElement("i");
+  connection.replaceChildren(indicator, document.createTextNode(online ? "Подключено к серверу" : "Нет связи с сервером"));
+}
 function showStage(number) {
   const names = ["description", "questions", "card", "published"];
   names.forEach((name, index) => { $(`#stage-${name}`).hidden = index + 1 !== number; });
@@ -377,17 +384,9 @@ async function refreshTasks() {
   try {
     const result = await api.listTasks();
     if (!Array.isArray(result)) throw new ApiError("Список задач имеет неожиданный формат.", 200, result);
-    const connection = $("#server-connection");
-    connection.className = "connection";
-    connection.textContent = "Подключено к серверу";
-    connection.insertAdjacentHTML("afterbegin", "<i></i>");
     state.tasks = result;
     renderTaskList();
   } catch (error) {
-    const connection = $("#server-connection");
-    connection.className = "connection offline";
-    connection.textContent = "Нет связи с сервером";
-    connection.insertAdjacentHTML("afterbegin", "<i></i>");
     root.innerHTML = `<div class="empty-state"><strong>Не удалось загрузить задачи</strong><p>${escapeHTML(friendlyError(error))}</p><button class="button button-secondary" id="retry-list">Повторить</button></div>`;
     $("#retry-list")?.addEventListener("click", () => refreshTasks());
     $("#stat-total").textContent = "—"; $("#stat-published").textContent = "—"; $("#stat-score").textContent = "—";
@@ -520,7 +519,7 @@ function showMilestone() {
   const task = { ...adaptMarketplaceTask(state.activeTask), selectedTeamId: teamId };
   const screen = createMilestoneScreen(task, {
     onCreated: () => { if (isActiveMarketplaceScreen("milestone", screen)) toast("Этап записан. Подтвердите его после проверки результата."); },
-    onConfirmed: () => { if (isActiveMarketplaceScreen("milestone", screen)) toast("Этап подтверждён: начислено 10 баллов команде"); },
+    onConfirmed: () => { if (isActiveMarketplaceScreen("milestone", screen)) toast("Этап подтверждён"); },
   });
   const teamSelect = screen.querySelector('select[name="teamId"]');
   if (teamSelect) {
@@ -562,6 +561,7 @@ function onConflictAction(event) {
   }
 }
 function init() {
+  window.addEventListener("api-connection", (event) => setServerConnection(event.detail?.online === true));
   $("#description").addEventListener("input", (event) => { $("#description-count").textContent = `${event.target.value.length.toLocaleString("ru-RU")} / 10 000`; });
   $("#new-task").addEventListener("click", () => openEditor());
   $("#close-editor").addEventListener("click", closeEditor);
