@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f6f6f2">
+    <title>Задачи для команд — кабинет бизнеса</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#top" aria-label="На главную">
+          <span class="brand-mark">и</span><span>импульс<span class="brand-dot">.</span></span>
+        </a>
+        <div class="workspace-label">РАБОЧЕЕ ПРОСТРАНСТВО</div>
+        <div class="workspace"><span class="workspace-icon">К</span><span><strong>Кофейня «Север»</strong><small>Кабинет бизнеса</small></span><span class="chevron">⌄</span></div>
+        <nav class="side-nav" aria-label="Основная навигация">
+          <a class="nav-item active" href="#workspace"><span class="nav-icon">▤</span>Мои задачи</a>
+          <a class="nav-item" href="#workspace" data-notice="Каталог студенческих проектов скоро появится здесь."><span class="nav-icon">◫</span>Каталог проектов</a>
+          <a class="nav-item" href="#workspace" data-notice="Раздел команд будет доступен после запуска marketplace."><span class="nav-icon">♧</span>Команды</a>
+        </nav>
+        <div class="sidebar-bottom"><div class="help-icon">?</div><div><strong>Нужна помощь?</strong><small>Мы на связи</small></div><span class="chevron">↗</span></div>
+        <div class="profile"><div class="avatar">АС</div><div><strong>Алия Садыкова</strong><small>Представитель бизнеса</small></div><span class="chevron">···</span></div>
+      </aside>
+
+      <main id="top" class="main-area">
+        <header class="topbar"><div class="breadcrumbs">Рабочее пространство <span>/</span> <strong>Мои задачи</strong></div><div class="top-actions"><span class="connection"><i></i>Подключено к серверу</span><button class="icon-button" aria-label="Уведомления">♧<b></b></button><div class="avatar small">АС</div></div></header>
+        <div id="workspace" class="content">
+          <section class="page-heading">
+            <div><div class="eyebrow">ВАШИ ИДЕИ — НАЧАЛО БОЛЬШИХ ПРОЕКТОВ</div><h1>Мои задачи</h1><p>Опишите задачу простыми словами. Мы поможем превратить её в понятный проект для студенческих команд.</p></div>
+            <button id="new-task" class="button button-primary"><span>＋</span> Создать задачу</button>
+          </section>
+
+          <section class="overview-grid" aria-label="Обзор задач">
+            <article class="metric-card"><div class="metric-label">Всего задач <span>↗</span></div><strong id="stat-total">—</strong><small>в вашем рабочем пространстве</small></article>
+            <article class="metric-card"><div class="metric-label">Опубликовано <span class="metric-green">●</span></div><strong id="stat-published">—</strong><small>доступны студенческим командам</small></article>
+            <article class="metric-card"><div class="metric-label">Средний рейтинг <span class="metric-purple">✳</span></div><strong id="stat-score">—</strong><small>готовность описаний к работе</small></article>
+            <article class="tip-card"><div class="tip-icon">✳</div><div><strong>Хорошее описание — сильный старт</strong><p>Чем яснее задача, тем точнее команды смогут предложить решение.</p></div></article>
+          </section>
+
+          <section id="editor" class="editor-card" hidden>
+            <div class="editor-header"><div><div class="eyebrow">МАСТЕР СОЗДАНИЯ</div><h2 id="editor-title">Новая задача</h2><p>Сохранение происходит на сервере. Черновик можно продолжить позже.</p></div><button id="close-editor" class="icon-button close-button" aria-label="Закрыть редактор">×</button></div>
+            <div class="steps" aria-label="Этапы создания"><div class="step active" data-step-indicator="1"><span>1</span><b>Описание</b></div><i></i><div class="step" data-step-indicator="2"><span>2</span><b>Уточнения</b></div><i></i><div class="step" data-step-indicator="3"><span>3</span><b>Карточка задачи</b></div><i></i><div class="step" data-step-indicator="4"><span>4</span><b>Публикация</b></div></div>
+            <div id="status-message" class="status-message" role="status" aria-live="polite" hidden></div>
+            <section id="stage-description" class="stage">
+              <div class="stage-title"><span class="stage-number">01</span><div><h3>Расскажите, что нужно сделать</h3><p>Можно начать с черновой идеи — уточним детали вместе.</p></div></div>
+              <label class="field-label" for="description">Описание задачи</label>
+              <textarea id="description" rows="5" maxlength="10000" placeholder="Например: в нашей кофейне гости часто долго ждут заказ в обед. Хотим понять, как ускорить обслуживание…"></textarea>
+              <div class="field-foot"><span>Не нужно подбирать специальные слова</span><span id="description-count">0 / 10 000</span></div>
+              <div class="form-actions"><span class="privacy-note">✦ AI поможет структурировать идею — вы проверите каждый пункт</span><button id="analyze" class="button button-primary">Проанализировать <span>→</span></button></div>
+            </section>
+            <section id="stage-questions" class="stage" hidden>
+              <div class="stage-title"><span class="stage-number">02</span><div><h3>Пара уточнений</h3><p>Ваши ответы помогут командам лучше понять задачу. Ответы сохраняются в карточку.</p></div></div>
+              <div id="ai-mode" class="ai-mode"></div>
+              <div id="questions-list" class="questions-list"></div>
+              <div class="form-actions"><button class="button button-quiet" data-back="1">← К описанию</button><button id="apply-answers" class="button button-primary">Перейти к карточке <span>→</span></button></div>
+            </section>
+            <section id="stage-card" class="stage" hidden>
+              <div class="stage-title"><span class="stage-number">03</span><div><h3>Проверьте и дополните карточку</h3><p>Все поля можно менять. Подтвердите те, за которые готовы отвечать перед публикацией.</p></div></div>
+              <div class="card-toolbar"><div id="card-mode" class="ai-mode"></div><div id="revision-label" class="revision-label"></div></div>
+              <div id="fields-grid" class="fields-grid"></div>
+              <div id="score-panel" class="score-panel" hidden></div>
+              <div class="form-actions card-actions"><button class="button button-quiet" data-back="2">← К уточнениям</button><div class="action-group"><button id="save-draft" class="button button-secondary">Сохранить черновик</button><button id="save-confirm" class="button button-primary">Сохранить и пересчитать</button></div></div>
+              <div class="publish-bar"><div><strong>Готовы показать задачу командам?</strong><small>Опубликуются только подтверждённые поля. Рейтинг не блокирует публикацию.</small></div><button id="publish" class="button button-dark" disabled>Опубликовать задачу <span>→</span></button></div>
+            </section>
+            <section id="stage-published" class="stage published-stage" hidden></section>
+          </section>
+
+          <section class="task-list-section"><div class="section-heading"><div><h2>Ваши задачи</h2><p>Черновики и опубликованные проекты</p></div><label class="search-box"><span>⌕</span><input id="task-search" type="search" placeholder="Найти задачу" aria-label="Найти задачу"></label></div><div id="task-list" class="task-list"><div class="loading-row"><span class="spinner"></span>Загружаем задачи…</div></div></section>
+          <footer class="footer"><span>импульс<span class="brand-dot">.</span> <span>·</span> Платформа практических проектов</span><span>Помогаем идеям становиться решениями</span></footer>
+        </div>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
