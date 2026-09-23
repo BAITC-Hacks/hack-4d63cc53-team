@@ -104,6 +104,23 @@ class MarketplaceHTTPTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/catalog").json(), catalog)
         self.assertEqual(self.client.get("/api/catalog?readiness=unknown").status_code, 422)
 
+    def test_seed_is_a_complete_linked_demo_scenario(self):
+        self.assertEqual({key: len(self.seed[key]) for key in ("tasks", "teams", "proposals")}, {
+            "tasks": 5, "teams": 5, "proposals": 5,
+        })
+        self.assertEqual(sorted(task["score"] for task in self.seed["tasks"]), [0, 40, 70, 90, 100])
+
+        task_ids = {task["id"] for task in self.seed["tasks"]}
+        team_ids = {team["id"] for team in self.seed["teams"]}
+        proposals = [
+            proposal
+            for task_id in task_ids
+            for proposal in self.client.get(f"/api/tasks/{task_id}/proposals").json()
+        ]
+        self.assertEqual(len(proposals), 5)
+        self.assertTrue(all(proposal["taskId"] in task_ids and proposal["teamId"] in team_ids for proposal in proposals))
+        self.assertTrue(all(proposal["deadline"].strip() and proposal["prototypeUrl"].startswith("https://") for proposal in proposals))
+
     def test_low_score_multiple_decisions_points_and_reopen(self):
         task = min(self.seed["tasks"], key=lambda item: item["score"])
         team_ids = [team["id"] for team in self.seed["teams"][:3]]
