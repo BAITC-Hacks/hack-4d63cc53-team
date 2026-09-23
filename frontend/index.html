@@ -62,9 +62,13 @@
             <section id="stage-card" class="stage" hidden>
               <div class="stage-title"><span class="stage-number">03</span><div><h3>Проверьте и дополните карточку</h3><p>Все поля можно менять. Подтвердите те, за которые готовы отвечать перед публикацией.</p></div></div>
               <div class="card-toolbar"><div id="card-mode" class="mode-container"></div><div id="revision-label" class="revision-label"></div></div>
-              <div id="fields-grid" class="fields-grid"></div>
+              <div class="card-comparison">
+                <aside class="source-description" aria-labelledby="source-description-title"><div class="eyebrow">ИСХОДНОЕ ОПИСАНИЕ</div><h4 id="source-description-title">С чего начали</h4><p id="source-description"></p></aside>
+                <div class="prepared-card"><div class="prepared-card-heading"><h4>Текущая карточка</h4><p>Добавьте детали и подтвердите проверенные сведения.</p></div><div id="fields-grid" class="fields-grid"></div></div>
+              </div>
               <div id="score-panel" class="score-panel" hidden></div>
               <div class="form-actions card-actions"><button class="button button-quiet" data-back="2">← К уточнениям</button><div class="action-group"><button id="save-draft" class="button button-secondary">Сохранить черновик</button><button id="save-confirm" class="button button-primary">Сохранить и пересчитать</button></div></div>
+              <section id="public-preview" class="public-preview" aria-label="Предпросмотр публикации"></section>
               <div class="publish-bar"><div><strong>Готовы показать задачу командам?</strong><small>Опубликуются только подтверждённые поля. Рейтинг не блокирует публикацию.</small></div><button id="publish" class="button button-dark" disabled>Опубликовать задачу <span>→</span></button></div>
             </section>
             <section id="stage-published" class="stage published-stage" hidden></section>

@@ -1,5 +1,6 @@
 import { api, ApiError, request } from "./shared/api.js";
 import { createRatingGuide } from "./business/rating-guide.js";
+import { getTextQualityHint } from "./business/text-quality.js";
 import {
   createCatalogScreen,
   createMilestoneScreen,
@@ -89,8 +90,10 @@ function openEditor({ task = null } = {}) {
   $("#stage-published").hidden = true;
   if (task) {
     renderCard(task);
-    if (task.publicationStatus === "published") renderPublished(task);
-    showStage(task.publicationStatus === "published" ? 4 : 3);
+    const published = task.publicationStatus === "published";
+    const hasPublication = published && renderPublished(task);
+    showStage(hasPublication ? 4 : 3);
+    if (published && !hasPublication) setStatus("В опубликованной версии нет подтверждённых сведений. Проверьте название, потребность и ожидаемый результат, затем сохраните и подтвердите заполненные поля.", "warning");
   } else showStage(1);
   $("#editor").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -222,6 +225,7 @@ async function applyAnswers() {
   showStage(3);
 }
 function renderCard(task, draftFields = null, draftConfirmations = []) {
+  $("#editor-title").textContent = task ? (task.title || "Продолжить задачу") : "Новая задача";
   if (draftFields) state.fields = { ...draftFields };
   else if (task) state.fields = fieldsFromTask(task);
   const confirmed = new Set((task?.confirmedFields || []).filter((key) => state.fields[key] === safeString(task[key])));
@@ -230,10 +234,13 @@ function renderCard(task, draftFields = null, draftConfirmations = []) {
   root.innerHTML = FIELDS.map(([key, label, hint]) => {
     const large = ["context", "need", "data", "constraints", "expectedResult", "successCriteria", "interactionFormat", "feedbackProcess"].includes(key);
     const val = state.fields[key] || "";
+    const qualityHint = getTextQualityHint(key, val);
     return `<div class="field-card"><div class="field-card-top"><label for="field-${key}">${escapeHTML(label)}</label><label class="confirm-control"><input type="checkbox" data-confirm-field="${key}" ${confirmed.has(key) ? "checked" : ""}><span>Подтверждаю</span></label></div>
-      <textarea class="field-input ${large ? "multiline" : ""}" id="field-${key}" data-field="${key}" maxlength="4000" placeholder="${escapeHTML(hint)}">${escapeHTML(val)}</textarea>
-      <div class="field-hint">${escapeHTML(hint)}</div></div>`;
+      <textarea class="field-input ${large ? "multiline" : ""}" id="field-${key}" data-field="${key}" maxlength="4000" placeholder="${escapeHTML(hint)}" aria-describedby="field-hint-${key}${qualityHint ? ` field-quality-${key}` : ""}">${escapeHTML(val)}</textarea>
+      <div id="field-hint-${key}" class="field-hint">${escapeHTML(hint)}</div><div id="field-quality-${key}" class="field-quality-hint" ${qualityHint ? "" : "hidden"}>${escapeHTML(qualityHint)}</div></div>`;
   }).join("");
+  $("#source-description").textContent = safeString(state.task?.rawDescription ?? $("#description").value) || "Исходное описание не указано.";
+  renderPublicPreview();
   renderMode($("#card-mode"), state.analysis || { mode: "fallback", reason: "Открыта сохранённая карточка" });
   $("#revision-label").textContent = task ? `Версия ${task.revision} · сохранено ${formatDate(task.updatedAt)}` : "Ещё не сохранено";
   $("#score-panel").hidden = !task;
@@ -242,6 +249,42 @@ function renderCard(task, draftFields = null, draftConfirmations = []) {
   $("#publish").disabled = !task || (task.publicationStatus === "published" && !publishUpdate);
   $("#publish").innerHTML = `${publishUpdate ? "Опубликовать обновление" : "Опубликовать задачу"} <span>→</span>`;
   $("#save-draft").textContent = task ? "Сохранить черновик" : "Создать черновик";
+}
+function publicFieldsFromTask(task) {
+  const confirmed = new Set(task?.confirmedFields || []);
+  return Object.fromEntries(FIELD_KEYS.map((key) => [key, confirmed.has(key) ? safeString(task?.[key]) : ""]));
+}
+function hasPublicContent(fields) {
+  return FIELD_KEYS.some((key) => safeString(fields?.[key]).trim());
+}
+function publicFieldsMarkup(fields) {
+  return `<dl class="public-fields">${FIELDS.map(([key, label]) => `<div><dt>${escapeHTML(label)}</dt><dd${safeString(fields?.[key]).trim() ? "" : ' class="public-field-empty"'}>${escapeHTML(safeString(fields?.[key]).trim() ? fields[key] : "Не указано")}</dd></div>`).join("")}</dl>`;
+}
+function publicPreviewPending() {
+  if (!state.task) return true;
+  return FIELD_KEYS.some((key) => $(`[data-field="${key}"]`)?.value !== safeString(state.task[key])) ||
+    selectedConfirmations().some((key) => !state.task.confirmedFields?.includes(key));
+}
+function renderPublicPreview() {
+  const root = $("#public-preview");
+  const fields = publicFieldsFromTask(state.task);
+  const filledCount = FIELD_KEYS.filter((key) => fields[key].trim()).length;
+  root.innerHTML = `<div class="public-preview-heading"><h4>Что увидят команды</h4><span>${filledCount} из ${FIELD_KEYS.length} полей</span></div>
+    <p>В публикацию попадут сохранённые и подтверждённые сведения. Неподтверждённые поля останутся пустыми.</p>
+    <p id="public-preview-pending" class="public-preview-notice" ${publicPreviewPending() ? "" : "hidden"}>Предпросмотр обновится после сохранения и подтверждения изменений.</p>
+    ${filledCount ? `<details class="public-preview-details" open><summary>Публичный предпросмотр</summary>${publicFieldsMarkup(fields)}</details>` : '<p class="public-preview-empty">Пока нет сведений для публикации. Проверьте название, потребность и ожидаемый результат. Заполните хотя бы одно поле, отметьте «Подтверждаю» и нажмите «Сохранить и пересчитать».</p>'}`;
+}
+function updateCardHints(key) {
+  if (key) {
+    const input = $(`[data-field="${key}"]`);
+    const hint = $(`#field-quality-${key}`);
+    const text = getTextQualityHint(key, input.value);
+    hint.textContent = text;
+    hint.hidden = !text;
+    input.setAttribute("aria-describedby", `field-hint-${key}${text ? ` field-quality-${key}` : ""}`);
+  }
+  const pending = $("#public-preview-pending");
+  if (pending) pending.hidden = !publicPreviewPending();
 }
 function publicationChanged(task) {
   const snapshot = task?.publishedVersion;
@@ -386,6 +429,7 @@ async function persistDraft({ confirm = false } = {}) {
     toast(confirm ? "Карточка сохранена и пересчитана" : "Черновик сохранён");
     await refreshTasks();
   } catch (error) {
+    renderPublicPreview();
     if (!handleConflict(error, confirm)) setStatus(friendlyError(error), "error");
   } finally {
     state.saving = false;
@@ -404,12 +448,23 @@ async function publishTask() {
     setStatus("Сначала сохраните изменения карточки.", "warning");
     return;
   }
+  if (!hasPublicContent(publicFieldsFromTask(state.task))) {
+    setStatus("Нельзя опубликовать пустую карточку. Заполните и подтвердите хотя бы одно поле, например название задачи. Проверьте также потребность и ожидаемый результат.", "warning");
+    $("#field-title").focus();
+    return;
+  }
   state.saving = true;
   $("#publish").disabled = true;
   $("#publish").textContent = "Публикуем…";
   try {
     state.task = await api.publishTask(state.task.id, state.task.revision);
-    renderPublished(state.task);
+    if (!renderPublished(state.task)) {
+      renderCard(state.task, currentFieldValues(), selectedConfirmations());
+      showStage(3);
+      setStatus("Сервер не вернул публичную версию с подтверждёнными сведениями. Публикация не подтверждена. Введённый текст остался в форме; проверьте карточку и попробуйте ещё раз.", "error");
+      await refreshTasks();
+      return;
+    }
     showStage(4);
     await refreshTasks();
   } catch (error) {
@@ -421,14 +476,20 @@ async function publishTask() {
   }
 }
 function renderPublished(task) {
-  const version = task.publishedVersion;
-  const title = version?.fields?.title || task.title || "Новая задача";
-  const score = Number(version?.score ?? task.score) || 0;
-  $("#stage-published").innerHTML = `<div class="success-mark">✓</div><h3>Задача опубликована</h3><p>Команды увидят подтверждённые сведения и смогут подготовить предложения. Рейтинг этой версии — ${score}/100.</p>
-    <div class="publication-preview"><strong>${escapeHTML(title)}</strong><p>Версия ${escapeHTML(version?.version ?? "—")} · опубликовано ${escapeHTML(formatDate(version?.publishedAt))} · статус: опубликована</p></div>
+  const version = task?.publishedVersion;
+  if (!hasPublicContent(version?.fields)) {
+    $("#stage-published").replaceChildren();
+    return false;
+  }
+  const title = safeString(version.fields.title).trim() ? version.fields.title : "Без названия";
+  $("#editor-title").textContent = title;
+  const score = Number.isFinite(version.score) ? `${version.score}/100` : "пока недоступен";
+  $("#stage-published").innerHTML = `<div class="success-mark">✓</div><h3>Задача опубликована</h3><p>Команды увидят подтверждённые сведения и смогут подготовить предложения. Рейтинг этой версии — ${escapeHTML(score)}.</p>
+    <div class="publication-preview"><strong>${escapeHTML(title)}</strong><p>Версия ${escapeHTML(version.version ?? "—")} · опубликовано ${escapeHTML(formatDate(version.publishedAt))} · статус: опубликована</p><details class="public-preview-details"><summary>Сведения опубликованной версии</summary>${publicFieldsMarkup(version.fields)}</details></div>
     <button id="back-to-card" class="button button-secondary">Вернуться к карточке</button> <button id="new-after-publish" class="button button-primary">Создать ещё одну задачу <span>→</span></button>`;
   $("#back-to-card").addEventListener("click", () => { renderCard(state.task, currentFieldValues(), selectedConfirmations()); showStage(3); });
   $("#new-after-publish").addEventListener("click", () => openEditor());
+  return true;
 }
 async function refreshTasks() {
   const root = $("#task-list");
@@ -661,6 +722,7 @@ function init() {
           }
         }
       }
+      updateCardHints(key);
     }
   });
   $("#editor").addEventListener("change", (event) => {
@@ -671,6 +733,9 @@ function init() {
       checkbox.checked = true;
       setStatus("Чтобы отозвать подтверждение, измените значение поля и сохраните черновик.", "warning");
     }
+  });
+  $("#editor").addEventListener("change", (event) => {
+    if (event.target.matches("[data-confirm-field]")) updateCardHints();
   });
   $("#editor").addEventListener("input", () => renderRatingGuide());
   $("#editor").addEventListener("change", () => renderRatingGuide());
