@@ -31,3 +31,20 @@ For a full feature workflow, wait for each step to finish and pass its result to
 
 - Do not start a later step if an earlier step fails, reveals a blocking issue, or needs a material user decision.
 - The `committer` must not push, create a pull request, amend, reset, rebase, or discard changes.
+
+## Team ownership
+
+- Use the participant responsibilities and file ownership in DEVELOPMENT_PLAN.md to scope each task.
+- State the assigned participant and permitted files in every subagent task. Reading other modules for integration context is allowed.
+- Edit only the assigned participant's files and explicitly assigned supporting files. If an integration requires changing another participant's module or a shared contract, describe the required change and coordinate it before editing that module.
+- Preserve teammates' in-progress and uncommitted changes; never revert or overwrite them to make your own task pass.
+- Keep reusable project instructions applicable to all participants; do not globally assign the repository to one participant.
+
+## Workspace map
+
+- Participant 1: frontend entry files, frontend/business/ and frontend/shared/.
+- Participant 2: backend root modules, backend/requirements.txt, backend/tests/core/, .env.example and docs/PARTICIPANT_2.md.
+- Participant 3: frontend/marketplace/, backend/marketplace/, backend/tests/marketplace/, data/ and README.md.
+- Detailed ownership and integration contracts are authoritative in DEVELOPMENT_PLAN.md section 4; inspect nested AGENTS.md for each assigned directory.
+- Keep app.py and task schema changes with participant 2, and frontend shell/shared-client changes with participant 1. Request integration changes from the relevant owner.
+- Separate clones or worktrees plus participant branches isolate parallel working copies. Directories and instructions alone do not enforce write isolation.

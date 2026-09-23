@@ -50,3 +50,6 @@ htmlcov/
 # Tooling
 *.tsbuildinfo
 /.codex
+
+# Local backend database
+/backend/runtime/
